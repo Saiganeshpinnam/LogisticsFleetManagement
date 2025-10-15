@@ -1,0 +1,11 @@
+// Driver example (emit location):
+// const socket = io('http://localhost:4000');
+// socket.emit('driver:join', { deliveryId: 1 });
+// setInterval(() => {
+//   socket.emit('driver:location', { deliveryId: 1, lat: 12.9716, lng: 77.5946 });
+// }, 5000);
+
+// Customer example (receive location):
+// const socket = io('http://localhost:4000');
+// socket.emit('customer:join', { deliveryId: 1 });
+// socket.on('delivery:location', (data) => console.log('live', data));
