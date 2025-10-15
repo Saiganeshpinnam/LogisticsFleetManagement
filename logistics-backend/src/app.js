@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+const morgan = require('morgan');
 const { sequelize } = require('./models');
+
 const authRoutes = require('./routes/auth.routes');
 const vehicleRoutes = require('./routes/vehicle.routes');
 const deliveryRoutes = require('./routes/delivery.routes');
@@ -9,23 +11,43 @@ const trackingRoutes = require('./routes/tracking.routes');
 const reportRoutes = require('./routes/report.routes');
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
 
-app.use('/auth', authRoutes);
-app.use('/vehicles', vehicleRoutes);
-app.use('/deliveries', deliveryRoutes);
-app.use('/tracking', trackingRoutes);
-app.use('/reports', reportRoutes);
+// Middleware
+app.use(cors({
+  origin: "http://localhost:3000", // frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev')); // logs requests
 
-// simple healthcheck
-app.get('/', (req, res) => res.json({ ok: true }));
+// API Routes (all prefixed with /api)
+app.use('/api/auth', authRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/deliveries', deliveryRoutes);
+app.use('/api/tracking', trackingRoutes);
+app.use('/api/reports', reportRoutes);
 
-// sync DB
-sequelize.sync({ alter: true }).then(() => {
-  console.log('Database synced');
-}).catch(err => {
-  console.error('DB sync error:', err);
+// Healthcheck
+app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅' }));
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found ❌' });
 });
+
+// Global error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error ❌'
+  });
+});
+
+// Sync Database
+sequelize.sync({ alter: true })
+  .then(() => console.log('Database synced ✅'))
+  .catch(err => console.error('DB sync error ❌:', err));
 
 module.exports = app;
