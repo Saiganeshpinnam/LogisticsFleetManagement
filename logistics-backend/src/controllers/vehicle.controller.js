@@ -9,11 +9,6 @@ exports.createVehicle = async (req, res) => {
   }
 
   try {
-    // Only admin can create vehicles
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden: Only admin can create vehicles' });
-    }
-
     const vehicle = await Vehicle.create({ plateNumber, model });
     return res.status(201).json({ message: 'Vehicle created successfully', vehicle });
   } catch (err) {
@@ -25,10 +20,6 @@ exports.createVehicle = async (req, res) => {
 // Get all vehicles (Admin only)
 exports.getVehicles = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden: Only admin can view vehicles' });
-    }
-
     const vehicles = await Vehicle.findAll();
     return res.json(vehicles);
   } catch (err) {

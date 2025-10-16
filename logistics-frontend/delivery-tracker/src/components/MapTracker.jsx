@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import socket from "../services/socket";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -24,22 +24,23 @@ function RecenterMap({ position }) {
   return null;
 }
 
-export default function MapTracker({ deliveryId, driverLocation }) {
+export default function MapTracker({ deliveryId, driverLocation, destination }) {
   const [position, setPosition] = useState([17.385, 78.4867]); // Default Hyderabad
 
   useEffect(() => {
-    const handleLocationUpdate = (data) => {
-      if (data.deliveryId === deliveryId) {
-        setPosition([data.lat, data.lng]);
-      }
+    const channel = `delivery-${deliveryId}`;
+    const handleLocationUpdate = ({ lat, lng }) => {
+      setPosition([lat, lng]);
     };
 
-    // Listen for driver location updates from backend
-    socket.on("driver-location", handleLocationUpdate);
+    // Listen for driver location updates for this delivery
+    socket.on(channel, handleLocationUpdate);
+    socket.emit("subscribe-delivery", deliveryId);
 
     // Cleanup listener on unmount or deliveryId change
     return () => {
-      socket.off("driver-location", handleLocationUpdate);
+      socket.emit("unsubscribe-delivery", deliveryId);
+      socket.off(channel, handleLocationUpdate);
     };
   }, [deliveryId]);
 
@@ -58,6 +59,14 @@ export default function MapTracker({ deliveryId, driverLocation }) {
         <Marker position={position}>
           <Popup>Driver is here</Popup>
         </Marker>
+        {destination && Array.isArray(destination) && destination.length === 2 && (
+          <>
+            <Marker position={destination}>
+              <Popup>Drop</Popup>
+            </Marker>
+            <Polyline positions={[position, destination]} color="blue" />
+          </>
+        )}
         <RecenterMap position={position} />
       </MapContainer>
     </div>

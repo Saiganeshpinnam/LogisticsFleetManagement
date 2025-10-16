@@ -5,7 +5,7 @@ const role = require('../middleware/roleCheck');
 const reportCtrl = require('../controllers/report.controller');
 
 // Only admin can access reports
-router.get('/avg-delivery-time-per-driver', auth, role('admin'), reportCtrl.avgDeliveryTimePerDriver);
-router.get('/vehicle-utilization', auth, role('admin'), reportCtrl.vehicleUtilization);
+router.get('/avg-delivery-time-per-driver', auth, role('Admin'), reportCtrl.avgDeliveryTimePerDriver);
+router.get('/vehicle-utilization', auth, role('Admin'), reportCtrl.vehicleUtilization);
 
 module.exports = router;

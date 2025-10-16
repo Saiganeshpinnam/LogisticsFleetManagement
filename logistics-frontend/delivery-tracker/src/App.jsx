@@ -6,6 +6,7 @@ import DriverDashboard from "./pages/DriverDashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import AssignDelivery from "./pages/AssignDelivery";
 import { getRole, isLoggedIn } from "./services/auth";
+import Reports from "./pages/Reports";
 
 // ProtectedRoute component
 function ProtectedRoute({ element, roles }) {
@@ -25,21 +26,27 @@ function App() {
         {/* Dashboards */}
         <Route
           path="/admin"
-          element={<ProtectedRoute element={<AdminDashboard />} roles={["Admin"]} />}
+          element={<ProtectedRoute element={<AdminDashboard />} roles={["admin"]} />}
         />
         <Route
           path="/driver"
-          element={<ProtectedRoute element={<DriverDashboard />} roles={["Driver"]} />}
+          element={<ProtectedRoute element={<DriverDashboard />} roles={["driver"]} />}
         />
         <Route
           path="/customer"
-          element={<ProtectedRoute element={<CustomerDashboard />} roles={["Customer"]} />}
+          element={<ProtectedRoute element={<CustomerDashboard />} roles={["customer"]} />}
         />
 
         {/* Admin-only Assign Delivery page */}
         <Route
           path="/assign-delivery"
-          element={<ProtectedRoute element={<AssignDelivery />} roles={["Admin"]} />}
+          element={<ProtectedRoute element={<AssignDelivery />} roles={["admin"]} />}
+        />
+
+        {/* Reports */}
+        <Route
+          path="/reports"
+          element={<ProtectedRoute element={<Reports />} roles={["admin"]} />}
         />
 
         {/* Fallback */}

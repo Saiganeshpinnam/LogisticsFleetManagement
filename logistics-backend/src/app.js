@@ -9,12 +9,13 @@ const vehicleRoutes = require('./routes/vehicle.routes');
 const deliveryRoutes = require('./routes/delivery.routes');
 const trackingRoutes = require('./routes/tracking.routes');
 const reportRoutes = require('./routes/report.routes');
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 
 // Middleware
 app.use(cors({
-  origin: "http://localhost:3000", // frontend URL
+  origin: process.env.FRONTEND_URL || "http://localhost:3000", // frontend URL
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
@@ -37,6 +38,9 @@ app.use('/api/tracking', trackingRoutes);
 
 // Reports
 app.use('/api/reports', reportRoutes);
+
+// Users (Admin-only list)
+app.use('/api/users', userRoutes);
 
 // -------------------- Healthcheck --------------------
 app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅' }));

@@ -1,11 +1,11 @@
 import axios from "axios";
 
-// Create Axios instance with base URL
+// ✅ Adjust to your backend port (check app.js — usually 4000 or 5000)
 const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4000/api",
 });
 
-// Add Authorization header automatically if token exists
+// Automatically add token if it exists
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -18,33 +18,46 @@ export default api;
 
 // -------------------- Helper functions --------------------
 
-// Get token from localStorage
-export function getToken() {
-  return localStorage.getItem("token");
-}
-
-// Save token to localStorage
+// Save token
 export function setToken(token) {
   localStorage.setItem("token", token);
 }
 
-// Remove token (logout)
+// Get token
+export function getToken() {
+  return localStorage.getItem("token");
+}
+
+// Remove token
 export function removeToken() {
   localStorage.removeItem("token");
 }
 
-// Check if user is logged in
+// Check login
 export function isLoggedIn() {
   return !!getToken();
 }
 
-// Get user role from JWT token
+// Decode role from JWT
 export function getRole() {
   const token = getToken();
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.role;
+  } catch (err) {
+    console.error("Invalid token", err);
+    return null;
+  }
+}
+
+// Decode user id from JWT
+export function getUserId() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.id;
   } catch (err) {
     console.error("Invalid token", err);
     return null;
