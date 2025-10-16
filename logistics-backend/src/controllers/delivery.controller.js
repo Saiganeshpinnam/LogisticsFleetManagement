@@ -59,6 +59,37 @@ exports.createDelivery = async (req, res) => {
   }
 };
 
+// Customer cancels their own pending delivery request
+exports.cancelMyRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const delivery = await Delivery.findByPk(id);
+    if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
+    if (delivery.customerId !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden: Cannot cancel this delivery' });
+    }
+    if (delivery.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending requests can be cancelled' });
+    }
+
+    // Remove tracking entries (if any) and then delete the delivery
+    await Tracking.destroy({ where: { deliveryId: id } });
+    await Delivery.destroy({ where: { id } });
+
+    try {
+      const io = getIO();
+      io.to(`user-${req.user.id}`).emit('deliveries-updated');
+      io.to('admins').emit('deliveries-updated');
+      if (delivery.driverId) io.to(`user-${delivery.driverId}`).emit('deliveries-updated');
+    } catch (_) {}
+
+    return res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 // Assign an existing delivery to a driver and vehicle (Admin only)
 exports.assignDelivery = async (req, res) => {
   const { id } = req.params;

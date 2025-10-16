@@ -31,6 +31,22 @@ export default function CustomerDashboard() {
     };
   }, []);
 
+  const handleCancel = async (deliveryId) => {
+    const ok = window.confirm(`Cancel delivery request #${deliveryId}?`);
+    if (!ok) return;
+    try {
+      await axios.delete(`/deliveries/${deliveryId}/cancel`);
+      // Optimistic update for immediate UI feedback
+      setDeliveries((prev) => prev.filter((d) => d.id !== deliveryId));
+      if (selectedDelivery === deliveryId) setSelectedDelivery(null);
+      // Ensure state is in sync with server
+      await loadDeliveries();
+    } catch (err) {
+      console.error('Cancel delivery error:', err);
+      setError(err.response?.data?.message || `Failed to cancel (${err.response?.status || ''})`);
+    }
+  };
+
   useEffect(() => {
     if (!selectedDelivery) return;
 
@@ -205,6 +221,16 @@ export default function CustomerDashboard() {
                     {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : "Pending"}
                   </span>
                 </p>
+                {(d.status === 'pending' && !d.driverId && !d.vehicleId) && (
+                  <div className="mt-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleCancel(d.id); }}
+                      className="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700 active:scale-95 transition"
+                    >
+                      Cancel Request
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

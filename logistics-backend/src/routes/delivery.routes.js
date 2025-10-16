@@ -19,6 +19,9 @@ router.put('/:id/status', auth, role(['Admin', 'Driver']), deliveryCtrl.updateSt
 // Get tracking info for a delivery (Any logged-in user)
 router.get('/:id/track', auth, deliveryCtrl.getTrack);
 
+// Customer cancels their own pending request
+router.delete('/:id/cancel', auth, role('Customer'), deliveryCtrl.cancelMyRequest);
+
 // Get all deliveries (Admin only)
 router.get('/', auth, role('Admin'), deliveryCtrl.getDeliveries);
 
