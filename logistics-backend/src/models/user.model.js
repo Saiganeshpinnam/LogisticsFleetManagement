@@ -31,24 +31,24 @@ module.exports = (sequelize) => {
       },
 
       role: {
-        type: DataTypes.ENUM("Admin", "Driver", "Customer"), // ✅ added admin role
+        type: DataTypes.ENUM("Admin", "Driver", "Customer"), // ✅ Roles with proper capitalization
         allowNull: false,
-        defaultValue: "Customer", // ✅ default role
+        defaultValue: "Customer",
       },
     },
     {
       tableName: "users",
-      timestamps: true, // adds createdAt & updatedAt columns
+      timestamps: true, // adds createdAt & updatedAt
     }
   );
 
-  // ✅ Hash password before creating user
+  // Hash password before creating
   User.beforeCreate(async (user) => {
     const hash = await bcrypt.hash(user.password, 10);
     user.password = hash;
   });
 
-  // ✅ Hash password if updated later
+  // Hash password before updating
   User.beforeUpdate(async (user) => {
     if (user.changed("password")) {
       const hash = await bcrypt.hash(user.password, 10);
@@ -56,7 +56,7 @@ module.exports = (sequelize) => {
     }
   });
 
-  // ✅ Instance method to validate password
+  // Instance method to validate password
   User.prototype.validatePassword = function (password) {
     return bcrypt.compare(password, this.password);
   };

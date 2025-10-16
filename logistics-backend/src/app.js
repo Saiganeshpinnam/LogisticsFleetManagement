@@ -22,22 +22,31 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev')); // logs requests
 
-// API Routes (all prefixed with /api)
+// -------------------- API Routes --------------------
+// Auth routes
 app.use('/api/auth', authRoutes);
+
+// Vehicle routes
 app.use('/api/vehicles', vehicleRoutes);
+
+// Delivery routes
 app.use('/api/deliveries', deliveryRoutes);
+
+// Tracking routes
 app.use('/api/tracking', trackingRoutes);
+
+// Reports
 app.use('/api/reports', reportRoutes);
 
-// Healthcheck
+// -------------------- Healthcheck --------------------
 app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅' }));
 
-// 404 handler
+// -------------------- 404 handler --------------------
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Route not found ❌' });
 });
 
-// Global error handling
+// -------------------- Global error handler --------------------
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -45,7 +54,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Sync Database
+// -------------------- Sync Database --------------------
 sequelize.sync({ alter: true })
   .then(() => console.log('Database synced ✅'))
   .catch(err => console.error('DB sync error ❌:', err));

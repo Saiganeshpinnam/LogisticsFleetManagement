@@ -1,14 +1,16 @@
 import { useState } from "react";
-import axios from "../services/api";
+import api from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    role: "customer",
+    role: "Customer", // Default role
   });
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,9 +19,9 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("/auth/register", form);
+      const res = await api.post("/auth/register", form);
       alert(res.data.message || "Registered successfully!");
-      window.location.href = "/";
+      navigate("/"); // Redirect to login after registration
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Registration failed ❌");
@@ -37,6 +39,7 @@ export default function Register() {
         <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">
           Register
         </h2>
+
         <input
           name="name"
           placeholder="Full Name"
@@ -44,6 +47,7 @@ export default function Register() {
           onChange={handleChange}
           required
         />
+
         <input
           name="email"
           type="email"
@@ -52,6 +56,7 @@ export default function Register() {
           onChange={handleChange}
           required
         />
+
         <input
           name="password"
           type="password"
@@ -60,16 +65,19 @@ export default function Register() {
           onChange={handleChange}
           required
         />
+
         <select
           name="role"
           className="w-full mb-4 p-2 border rounded-md"
           onChange={handleChange}
           value={form.role}
+          required
         >
-          <option value="customer">Customer</option>
-          <option value="driver">Driver</option>
-          <option value="admin">Admin</option>
+          <option value="Customer">Customer</option>
+          <option value="Driver">Driver</option>
+          <option value="Admin">Admin</option>
         </select>
+
         <button
           type="submit"
           disabled={loading}

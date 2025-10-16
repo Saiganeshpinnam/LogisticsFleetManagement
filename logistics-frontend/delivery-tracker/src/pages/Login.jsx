@@ -1,8 +1,5 @@
 import { useState } from "react";
-import axios from "../services/api";
-import { setToken } from "../services/api";
-
-import { getRole } from "../services/auth";
+import api, { setToken, getRole } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -13,16 +10,22 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("/auth/login", { email, password });
+      const res = await api.post("/auth/login", { email, password });
+      
+      // Save JWT token in localStorage
       setToken(res.data.token);
 
+      // Decode role from token
       const role = getRole();
-      if (role === "admin") navigate("/admin");
-      else if (role === "driver") navigate("/driver");
-      else if (role === "customer") navigate("/customer");
+
+      // Redirect based on role
+      if (role === "Admin") navigate("/admin");
+      else if (role === "Driver") navigate("/driver");
+      else if (role === "Customer") navigate("/customer");
+      else alert("Unknown role. Contact admin.");
     } catch (err) {
       console.error(err);
-      alert("Invalid credentials ❌");
+      alert(err.response?.data?.message || "Invalid credentials ❌");
     }
   };
 
@@ -33,6 +36,7 @@ export default function Login() {
         className="bg-white p-8 rounded shadow-md w-96"
       >
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+
         <input
           type="email"
           placeholder="Email"
@@ -41,6 +45,7 @@ export default function Login() {
           className="w-full mb-4 px-3 py-2 border rounded"
           required
         />
+
         <input
           type="password"
           placeholder="Password"
@@ -49,12 +54,14 @@ export default function Login() {
           className="w-full mb-6 px-3 py-2 border rounded"
           required
         />
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
           Login
         </button>
+
         <p className="mt-4 text-center text-gray-600">
           Don't have an account?{" "}
           <a href="/register" className="text-blue-600 hover:underline">

@@ -7,12 +7,13 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import AssignDelivery from "./pages/AssignDelivery";
 import { getRole, isLoggedIn } from "./services/auth";
 
-const ProtectedRoute = ({ element, roles }) => {
-  if (!isLoggedIn()) return <Navigate to="/" replace />;
+// ProtectedRoute component
+function ProtectedRoute({ element, roles }) {
+  if (!isLoggedIn()) return <Navigate to="/" replace />; // Not logged in → redirect
   const userRole = getRole();
-  if (roles && !roles.includes(userRole)) return <Navigate to="/" replace />;
+  if (roles && !roles.includes(userRole)) return <Navigate to="/" replace />; // Unauthorized
   return element;
-};
+}
 
 function App() {
   return (
@@ -20,22 +21,28 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        {/* Dashboards */}
         <Route
           path="/admin"
-          element={<ProtectedRoute element={<AdminDashboard />} roles={["admin"]} />}
+          element={<ProtectedRoute element={<AdminDashboard />} roles={["Admin"]} />}
         />
         <Route
           path="/driver"
-          element={<ProtectedRoute element={<DriverDashboard />} roles={["driver"]} />}
+          element={<ProtectedRoute element={<DriverDashboard />} roles={["Driver"]} />}
         />
         <Route
           path="/customer"
-          element={<ProtectedRoute element={<CustomerDashboard />} roles={["customer"]} />}
+          element={<ProtectedRoute element={<CustomerDashboard />} roles={["Customer"]} />}
         />
+
+        {/* Admin-only Assign Delivery page */}
         <Route
           path="/assign-delivery"
-          element={<ProtectedRoute element={<AssignDelivery />} roles={["admin"]} />}
+          element={<ProtectedRoute element={<AssignDelivery />} roles={["Admin"]} />}
         />
+
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

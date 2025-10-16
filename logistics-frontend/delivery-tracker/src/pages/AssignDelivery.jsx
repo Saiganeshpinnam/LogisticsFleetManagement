@@ -17,18 +17,18 @@ export default function AssignDelivery() {
   const [customers, setCustomers] = useState([]);
   const [error, setError] = useState("");
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Fetch data from backend
   const fetchData = async () => {
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
       const [driversRes, vehiclesRes, customersRes] = await Promise.all([
-        axios.get("/users/drivers", { headers }),
-        axios.get("/vehicles", { headers }),
-        axios.get("/users/customers", { headers }),
+        axios.get("/api/users/drivers", { headers }),
+        axios.get("/api/vehicles", { headers }),
+        axios.get("/api/users/customers", { headers }),
       ]);
 
       setDrivers(driversRes.data);
@@ -36,23 +36,25 @@ export default function AssignDelivery() {
       setCustomers(customersRes.data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch data. Make sure you are logged in as admin.");
+      setError(
+        "Failed to fetch data. Make sure you are logged in as Admin and backend is running."
+      );
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
-      await axios.post("/deliveries", form, { headers });
+      await axios.post("/api/deliveries", form, { headers });
       alert("Delivery assigned successfully!");
+
       setForm({
         pickupAddress: "",
         dropAddress: "",
@@ -72,6 +74,7 @@ export default function AssignDelivery() {
     <div className="p-8 max-w-xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Assign Delivery</h2>
       {error && <div className="text-red-600 mb-4">{error}</div>}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           name="pickupAddress"
@@ -79,19 +82,24 @@ export default function AssignDelivery() {
           value={form.pickupAddress}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         />
+
         <input
           name="dropAddress"
           placeholder="Drop Address"
           value={form.dropAddress}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         />
+
         <select
           name="driverId"
           value={form.driverId}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         >
           <option value="">Select Driver</option>
           {drivers.map((d) => (
@@ -100,24 +108,28 @@ export default function AssignDelivery() {
             </option>
           ))}
         </select>
+
         <select
           name="vehicleId"
           value={form.vehicleId}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         >
           <option value="">Select Vehicle</option>
           {vehicles.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.model} ({v.plate})
+              {v.model} ({v.plateNumber})
             </option>
           ))}
         </select>
+
         <select
           name="customerId"
           value={form.customerId}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         >
           <option value="">Select Customer</option>
           {customers.map((c) => (
@@ -126,20 +138,25 @@ export default function AssignDelivery() {
             </option>
           ))}
         </select>
+
         <input
           type="datetime-local"
           name="scheduledStart"
           value={form.scheduledStart}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         />
+
         <input
           type="datetime-local"
           name="scheduledEnd"
           value={form.scheduledEnd}
           onChange={handleChange}
           className="w-full p-2 border rounded"
+          required
         />
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
