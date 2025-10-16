@@ -59,6 +59,48 @@ exports.createDelivery = async (req, res) => {
   }
 };
 
+// Assign an existing delivery to a driver and vehicle (Admin only)
+exports.assignDelivery = async (req, res) => {
+  const { id } = req.params;
+  const { driverId, vehicleId } = req.body;
+  if (!driverId || !vehicleId) {
+    return res.status(400).json({ message: 'driverId and vehicleId are required' });
+  }
+  try {
+    const delivery = await Delivery.findByPk(id);
+    if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
+
+    // Validate FKs
+    const [driver, vehicle] = await Promise.all([
+      User.findByPk(driverId),
+      Vehicle.findByPk(vehicleId),
+    ]);
+    if (!driver || driver.role !== 'Driver') {
+      return res.status(400).json({ message: 'Driver not found' });
+    }
+    if (!vehicle) {
+      return res.status(400).json({ message: 'Vehicle not found' });
+    }
+
+    delivery.driverId = driverId;
+    delivery.vehicleId = vehicleId;
+    await delivery.save();
+
+    // notify assigned driver and customer to refresh
+    try {
+      const io = getIO();
+      if (delivery.driverId) io.to(`user-${delivery.driverId}`).emit('deliveries-updated');
+      if (delivery.customerId) io.to(`user-${delivery.customerId}`).emit('deliveries-updated');
+      io.to('admins').emit('deliveries-updated');
+    } catch (_) {}
+
+    return res.json({ message: 'Delivery assigned', delivery });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 // Update delivery status (Admin or Assigned Driver)
 exports.updateStatus = async (req, res) => {
   const { id } = req.params;
@@ -124,6 +166,62 @@ exports.getDeliveries = async (req, res) => {
   try {
     const deliveries = await Delivery.findAll();
     return res.json(deliveries);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Customer creates a delivery request (no driver/vehicle yet)
+exports.createRequest = async (req, res) => {
+  try {
+    const customerId = req.user.id;
+    const { pickupAddress, dropAddress, productUrl } = req.body;
+    if (!pickupAddress || !dropAddress) {
+      return res.status(400).json({ message: 'pickupAddress and dropAddress are required' });
+    }
+    let productTitle, productImage, productPrice;
+    if (productUrl) {
+      try {
+        const resp = await fetch(productUrl, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en' } });
+        const html = await resp.text();
+        const og = (prop) => {
+          const re = new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["'][^>]*>`, 'i');
+          const m = html.match(re);
+          return m ? m[1] : undefined;
+        };
+        const meta = (name) => {
+          const re = new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']+)["'][^>]*>`, 'i');
+          const m = html.match(re);
+          return m ? m[1] : undefined;
+        };
+        productTitle = og('title') || meta('title');
+        productImage = og('image');
+        productPrice = og('price:amount') || meta('price') || meta('product:price:amount');
+      } catch (_) {
+        // ignore metadata failures
+      }
+    }
+
+    const delivery = await Delivery.create({
+      pickupAddress,
+      dropAddress,
+      customerId,
+      status: 'pending',
+      productUrl: productUrl || null,
+      productTitle: productTitle || null,
+      productImage: productImage || null,
+      productPrice: productPrice || null,
+    });
+
+    // notify: customer list and admins dashboard
+    try {
+      const io = getIO();
+      io.to(`user-${customerId}`).emit('deliveries-updated');
+      io.to('admins').emit('deliveries-updated');
+    } catch (_) {}
+
+    return res.status(201).json({ message: 'Request created', delivery });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error', error: err.message });

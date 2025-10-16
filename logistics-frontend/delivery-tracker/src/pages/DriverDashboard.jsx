@@ -178,6 +178,19 @@ export default function DriverDashboard() {
             {deliveries.map((d) => (
               <div key={d.id} onClick={() => setSelectedDelivery(d.id)} className={`bg-white p-5 rounded-xl shadow hover:shadow-lg transition ${selectedDelivery===d.id? 'border-2 border-blue-600' : ''}`}>
                 <h3 className="font-semibold text-xl text-gray-800 mb-2">Delivery #{d.id}</h3>
+                {d.productUrl && (
+                  <div className="flex gap-3 items-center mb-2">
+                    {d.productImage && (
+                      <img src={d.productImage} alt={d.productTitle || 'Product'} className="w-14 h-14 object-cover rounded" />
+                    )}
+                    <div className="text-sm">
+                      <a href={d.productUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                        {d.productTitle || 'View product'}
+                      </a>
+                      {d.productPrice && <div className="text-gray-700">{d.productPrice}</div>}
+                    </div>
+                  </div>
+                )}
                 <p className="text-gray-700 mb-2">
                   <strong>Pickup:</strong> {d.pickupAddress} <br />
                   <strong>Drop:</strong> {d.dropAddress} <br />
@@ -233,7 +246,16 @@ export default function DriverDashboard() {
       {selectedDelivery && (
         <div className="px-6 pb-6">
           <div className="bg-white p-4 rounded-xl shadow">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Live Tracking for Delivery #{selectedDelivery}</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Live Tracking for Delivery #{selectedDelivery}</h3>
+            {(() => { const d = deliveries.find(x=>x.id===selectedDelivery); return d?.productUrl ? (
+              <div className="flex items-center gap-3 mb-2">
+                {d.productImage && <img src={d.productImage} alt={d.productTitle||'Product'} className="w-12 h-12 object-cover rounded"/>}
+                <div className="text-sm">
+                  <a href={d.productUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{d.productTitle || 'View product'}</a>
+                  {d.productPrice && <div className="text-gray-700">{d.productPrice}</div>}
+                </div>
+              </div>
+            ) : null; })()}
             {etaHours !== null && destination && (
               <div className="mb-3 text-sm text-gray-700">
                 <strong>Estimated time to arrive:</strong> {etaHours.toFixed(2)} hours

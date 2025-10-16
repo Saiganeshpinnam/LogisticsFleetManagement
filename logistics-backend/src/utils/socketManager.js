@@ -11,6 +11,16 @@ function initSocket(server) {
   io.on("connection", (socket) => {
     console.log(`✅ Client connected: ${socket.id}`);
 
+    // Admins room for global updates (e.g., new customer requests)
+    socket.on("subscribe-admins", () => {
+      socket.join('admins');
+      socket.emit("subscribed", { room: 'admins' });
+    });
+    socket.on("unsubscribe-admins", () => {
+      socket.leave('admins');
+      socket.emit("unsubscribed", { room: 'admins' });
+    });
+
     // Subscribe client to their user room for targeted notifications
     socket.on("subscribe-user", (userId) => {
       const room = `user-${userId}`;
