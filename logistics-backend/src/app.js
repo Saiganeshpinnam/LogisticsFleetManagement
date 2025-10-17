@@ -52,18 +52,26 @@ app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅
 // Database connection test
 app.get('/api/db-test', async (req, res) => {
   try {
+    console.log('Testing database connection...');
     await sequelize.authenticate();
-    const userCount = await sequelize.models.User.count();
+    console.log('Database authentication successful');
+    
+    const { User } = require('./models');
+    const userCount = await User.count();
+    console.log('User count:', userCount);
+    
     res.json({ 
       message: 'Database connected ✅', 
       userCount: userCount,
-      dbName: process.env.DB_NAME || 'logistics_db'
+      dbName: process.env.DB_NAME || 'logistics_db',
+      hasUrl: !!process.env.DATABASE_URL
     });
   } catch (error) {
-    console.error('Database connection error:', error);
+    console.error('Database connection error details:', error);
     res.status(500).json({ 
       message: 'Database connection failed ❌', 
-      error: error.message 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
