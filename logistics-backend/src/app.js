@@ -10,6 +10,7 @@ const deliveryRoutes = require('./routes/delivery.routes');
 const trackingRoutes = require('./routes/tracking.routes');
 const reportRoutes = require('./routes/report.routes');
 const userRoutes = require('./routes/user.routes');
+const locationRoutes = require('./routes/location.routes');
 
 const app = express();
 
@@ -46,6 +47,9 @@ app.use('/api/reports', reportRoutes);
 // Users (Admin-only list)
 app.use('/api/users', userRoutes);
 
+// Location routes
+app.use('/api/locations', locationRoutes);
+
 // -------------------- Healthcheck --------------------
 app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅' }));
 
@@ -58,13 +62,22 @@ app.get('/api/db-test', async (req, res) => {
     
     const { User } = require('./models');
     const userCount = await User.count();
+    const users = await User.findAll({ attributes: ['id', 'email', 'role', 'createdAt'] });
     console.log('User count:', userCount);
     
     res.json({ 
       message: 'Database connected ✅', 
+      dialect: sequelize.getDialect(),
       userCount: userCount,
+      users: users.map(u => ({ 
+        id: u.id, 
+        email: u.email, 
+        role: u.role, 
+        createdAt: u.createdAt 
+      })),
       dbName: process.env.DB_NAME || 'logistics_db',
-      hasUrl: !!process.env.DATABASE_URL
+      hasUrl: !!process.env.DATABASE_URL,
+      storage: sequelize.options.storage || 'Not applicable'
     });
   } catch (error) {
     console.error('Database connection error details:', error);
@@ -129,6 +142,7 @@ app.use((err, req, res, next) => {
 sequelize.sync({ alter: true })
   .then(async () => {
     console.log('Database synced ✅');
+    console.log('Database dialect:', sequelize.getDialect());
     
     // Create default admin user if none exists
     try {
@@ -136,19 +150,31 @@ sequelize.sync({ alter: true })
       const adminExists = await User.findOne({ where: { role: 'Admin' } });
       
       if (!adminExists) {
-        await User.create({
+        const adminUser = await User.create({
           name: 'Admin User',
           email: 'admin@test.com',
           password: 'password123',
           role: 'Admin'
         });
         console.log('Default admin user created ✅');
+        console.log('Admin user ID:', adminUser.id);
         console.log('Login with: admin@test.com / password123');
+      } else {
+        console.log('Admin user already exists ✅');
+        console.log('Existing admin ID:', adminExists.id);
       }
+      
+      // Log total user count
+      const userCount = await User.count();
+      console.log(`Total users in database: ${userCount}`);
+      
     } catch (err) {
       console.error('Error creating default admin:', err);
     }
   })
-  .catch(err => console.error('DB sync error ❌:', err));
+  .catch(err => {
+    console.error('DB sync error ❌:', err);
+    console.error('Error details:', err.message);
+  });
 
 module.exports = app;

@@ -3,7 +3,7 @@ import axios from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
-import SimpleAddressAutocomplete from "../components/SimpleAddressAutocomplete";
+import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomplete";
 import { getUserId } from "../services/api";
 
 export default function CustomerDashboard() {
@@ -18,6 +18,11 @@ export default function CustomerDashboard() {
   useEffect(() => {
     loadDeliveries();
   }, []);
+
+  // Debug: Monitor requestForm changes
+  useEffect(() => {
+    console.log('requestForm state changed:', requestForm);
+  }, [requestForm]);
 
   // Subscribe to user room to auto-refresh on new assignments
   useEffect(() => {
@@ -153,12 +158,37 @@ export default function CustomerDashboard() {
         {/* Request Delivery Form */}
         <form onSubmit={submitRequest} className="mb-6 bg-white p-6 rounded-lg shadow transition-all duration-300 hover:shadow-md">
           <h3 className="font-semibold mb-4 text-lg text-gray-800">Request a Delivery</h3>
+          
+          {/* Debug: Show current form state */}
+          {(requestForm.pickupAddress || requestForm.dropAddress) && (
+            <div className="mb-4 p-3 bg-gray-50 rounded-md text-sm">
+              <div className="font-medium text-gray-700 mb-2">Current Selection:</div>
+              {requestForm.pickupAddress && (
+                <div className="text-green-600">
+                  <span className="font-medium">Pickup:</span> {requestForm.pickupAddress}
+                </div>
+              )}
+              {requestForm.dropAddress && (
+                <div className="text-blue-600">
+                  <span className="font-medium">Drop:</span> {requestForm.dropAddress}
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Pickup Address</label>
-              <SimpleAddressAutocomplete
+              <EnhancedAddressAutocomplete
                 value={requestForm.pickupAddress}
-                onChange={(value) => setRequestForm({ ...requestForm, pickupAddress: value })}
+                onChange={(value) => {
+                  console.log('Pickup address onChange called with:', value); // Debug log
+                  console.log('Current requestForm before update:', requestForm);
+                  setRequestForm(prevForm => {
+                    const newForm = { ...prevForm, pickupAddress: value };
+                    console.log('New requestForm after update:', newForm);
+                    return newForm;
+                  });
+                }}
                 placeholder="Enter pickup address (e.g., Mumbai, Delhi, Bangalore)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
@@ -167,9 +197,17 @@ export default function CustomerDashboard() {
             
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Drop Address</label>
-              <SimpleAddressAutocomplete
+              <EnhancedAddressAutocomplete
                 value={requestForm.dropAddress}
-                onChange={(value) => setRequestForm({ ...requestForm, dropAddress: value })}
+                onChange={(value) => {
+                  console.log('Drop address onChange called with:', value); // Debug log
+                  console.log('Current requestForm before update:', requestForm);
+                  setRequestForm(prevForm => {
+                    const newForm = { ...prevForm, dropAddress: value };
+                    console.log('New requestForm after update:', newForm);
+                    return newForm;
+                  });
+                }}
                 placeholder="Enter drop address (e.g., Chennai, Pune, Hyderabad)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required

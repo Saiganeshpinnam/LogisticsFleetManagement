@@ -1,4 +1,13 @@
 const { Sequelize } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
+
+// Ensure database directory exists for SQLite
+const dbDir = path.join(__dirname, '../../database');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+  console.log('Created database directory:', dbDir);
+}
 
 // Check if DATABASE_URL is provided (common for cloud deployments like Render)
 let sequelize;
@@ -12,7 +21,7 @@ if (process.env.FORCE_SQLITE === 'true') {
   console.log('Forcing SQLite mode');
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: ':memory:',
+    storage: path.join(dbDir, 'logistics.db'), // Use persistent file storage
     logging: false
   });
 } else if (process.env.DATABASE_URL) {
@@ -39,29 +48,39 @@ if (process.env.FORCE_SQLITE === 'true') {
   // SQLite fallback for production if no DATABASE_URL
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: ':memory:', // Use in-memory database for now
+    storage: path.join(dbDir, 'logistics.db'), // Use persistent file storage
     logging: false
   });
 } else {
   console.log('Using individual environment variables for local development');
-  // Use individual environment variables for local development
-  sequelize = new Sequelize(
-    process.env.DB_NAME || 'logistics_db',
-    process.env.DB_USER || 'postgres',
-    process.env.DB_PASS || 'postgres',
-    {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      dialect: 'postgres',
-      logging: false,
-      pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
+  // Try PostgreSQL first with your .env settings
+  try {
+    sequelize = new Sequelize(
+      process.env.DB_NAME || 'logistics_db',
+      process.env.DB_USER || 'postgres',
+      process.env.DB_PASS || 'postgres',
+      {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        dialect: 'postgres',
+        logging: false,
+        pool: {
+          max: 5,
+          min: 0,
+          acquire: 30000,
+          idle: 10000
+        }
       }
-    }
-  );
+    );
+    console.log(`Attempting PostgreSQL connection: ${process.env.DB_USER}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+  } catch (error) {
+    console.log('PostgreSQL configuration failed, falling back to SQLite');
+    sequelize = new Sequelize({
+      dialect: 'sqlite',
+      storage: path.join(dbDir, 'logistics.db'),
+      logging: false
+    });
+  }
 }
 
 // Test the connection

@@ -57,9 +57,20 @@ exports.login = async (req, res) => {
   try {
     console.log('Login attempt for email:', email);
     
+    // Debug: Check total user count
+    const totalUsers = await User.count();
+    console.log('Total users in database:', totalUsers);
+    
+    // Debug: List all users (in development only)
+    if (process.env.NODE_ENV !== 'production') {
+      const allUsers = await User.findAll({ attributes: ['id', 'email', 'role'] });
+      console.log('All users in database:', allUsers.map(u => ({ id: u.id, email: u.email, role: u.role })));
+    }
+    
     const user = await User.findOne({ where: { email } });
     if (!user) {
       console.log('User not found for email:', email);
+      console.log('Available emails:', await User.findAll({ attributes: ['email'] }).then(users => users.map(u => u.email)));
       return res.status(404).json({ message: 'User not found' });
     }
 
