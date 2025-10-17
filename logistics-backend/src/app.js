@@ -49,6 +49,61 @@ app.use('/api/users', userRoutes);
 // -------------------- Healthcheck --------------------
 app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅' }));
 
+// Database connection test
+app.get('/api/db-test', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    const userCount = await sequelize.models.User.count();
+    res.json({ 
+      message: 'Database connected ✅', 
+      userCount: userCount,
+      dbName: process.env.DB_NAME || 'logistics_db'
+    });
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({ 
+      message: 'Database connection failed ❌', 
+      error: error.message 
+    });
+  }
+});
+
+// Create test user endpoint (for debugging only)
+app.post('/api/create-test-user', async (req, res) => {
+  try {
+    const { User } = require('./models');
+    
+    // Check if test user already exists
+    const existingUser = await User.findOne({ where: { email: 'admin@test.com' } });
+    if (existingUser) {
+      return res.json({ message: 'Test user already exists', user: { email: existingUser.email, role: existingUser.role } });
+    }
+
+    // Create test user
+    const testUser = await User.create({
+      name: 'Test Admin',
+      email: 'admin@test.com',
+      password: 'password123',
+      role: 'Admin'
+    });
+
+    res.json({ 
+      message: 'Test user created ✅', 
+      user: { 
+        id: testUser.id, 
+        email: testUser.email, 
+        role: testUser.role 
+      } 
+    });
+  } catch (error) {
+    console.error('Create test user error:', error);
+    res.status(500).json({ 
+      message: 'Failed to create test user ❌', 
+      error: error.message 
+    });
+  }
+});
+
 // -------------------- 404 handler --------------------
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Route not found ❌' });

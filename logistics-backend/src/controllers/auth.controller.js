@@ -55,20 +55,27 @@ exports.login = async (req, res) => {
   }
 
   try {
+    console.log('Login attempt for email:', email);
+    
     const user = await User.findOne({ where: { email } });
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(404).json({ message: 'User not found' });
     }
+
+    console.log('User found:', user.email, 'Role:', user.role);
 
     // Validate password using model's instance method
     const isValid = await user.validatePassword(password);
     if (!isValid) {
+      console.log('Invalid password for user:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Generate JWT
     const token = jwt.sign({ id: user.id, role: user.role });
 
+    console.log('Login successful for user:', email);
     return res.json({
       message: 'Login successful',
       token,
@@ -80,7 +87,10 @@ exports.login = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('Login error details:', err);
+    return res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
   }
 };
