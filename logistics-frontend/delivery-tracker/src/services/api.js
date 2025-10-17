@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ✅ Adjust to your backend port (check app.js — usually 4000 or 5000)
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4000/api",
+  baseURL: process.env.REACT_APP_API_URL || "https://logisticsfleetmanagement.onrender.com/api",
 });
 
 // Automatically add token if it exists

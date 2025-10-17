@@ -16,8 +16,8 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: [
-    "http://localhost:3000",
     "https://logistics-fleet-management-ten.vercel.app",
+    "http://localhost:3000",
     process.env.FRONTEND_URL
   ].filter(Boolean), // Remove any undefined values
   methods: ["GET", "POST", "PUT", "DELETE"],
