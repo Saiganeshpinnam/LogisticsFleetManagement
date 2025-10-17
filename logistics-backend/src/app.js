@@ -16,8 +16,8 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: [
-    "https://logistics-fleet-management-ten.vercel.app",
     "http://localhost:3000",
+    "https://logistics-fleet-management-ten.vercel.app",
     process.env.FRONTEND_URL
   ].filter(Boolean), // Remove any undefined values
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -119,7 +119,28 @@ app.use((err, req, res, next) => {
 
 // -------------------- Sync Database --------------------
 sequelize.sync({ alter: true })
-  .then(() => console.log('Database synced ✅'))
+  .then(async () => {
+    console.log('Database synced ✅');
+    
+    // Create default admin user if none exists
+    try {
+      const { User } = require('./models');
+      const adminExists = await User.findOne({ where: { role: 'Admin' } });
+      
+      if (!adminExists) {
+        await User.create({
+          name: 'Admin User',
+          email: 'admin@test.com',
+          password: 'password123',
+          role: 'Admin'
+        });
+        console.log('Default admin user created ✅');
+        console.log('Login with: admin@test.com / password123');
+      }
+    } catch (err) {
+      console.error('Error creating default admin:', err);
+    }
+  })
   .catch(err => console.error('DB sync error ❌:', err));
 
 module.exports = app;

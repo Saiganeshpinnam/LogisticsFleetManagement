@@ -27,7 +27,25 @@ export default function Login() {
       else alert("Unknown role. Contact admin.");
     } catch (err) {
       console.error("Login error:", err);
-      alert(err.response?.data?.message || "Invalid credentials ❌");
+      
+      // More detailed error handling
+      let errorMessage = "Login failed ❌";
+      
+      if (err.response) {
+        // Server responded with error status
+        errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
+        console.error("Server error details:", err.response.data);
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = "Cannot connect to server. Please check your internet connection.";
+        console.error("Network error:", err.request);
+      } else {
+        // Something else happened
+        errorMessage = err.message || "An unexpected error occurred";
+        console.error("Unexpected error:", err.message);
+      }
+      
+      alert(errorMessage);
     }
   };
 
