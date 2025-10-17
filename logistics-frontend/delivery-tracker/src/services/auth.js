@@ -1,7 +1,7 @@
-import { getToken } from "./api";
+import { getToken, isLoggedIn as apiIsLoggedIn } from "./api";
 
 export function isLoggedIn() {
-  return !!getToken();
+  return apiIsLoggedIn(); // Use the improved version from api.js
 }
 
 export function getRole() {

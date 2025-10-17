@@ -8,4 +8,7 @@ router.post('/register', authController.register);
 // POST /api/auth/login
 router.post('/login', authController.login);
 
+// POST /api/auth/refresh
+router.post('/refresh', authController.refreshToken);
+
 module.exports = router;

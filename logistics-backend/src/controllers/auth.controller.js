@@ -95,7 +95,8 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role
-      }
+      },
+      expiresIn: '30d' // Let frontend know token expiration
     });
   } catch (err) {
     console.error('Login error details:', err);
@@ -103,5 +104,42 @@ exports.login = async (req, res) => {
       message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
+  }
+};
+
+// Refresh token endpoint
+exports.refreshToken = async (req, res) => {
+  try {
+    const { authorization } = req.headers;
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const token = authorization.split(' ')[1];
+    const decoded = jwt.verify(token);
+    
+    // Find user to ensure they still exist
+    const user = await User.findByPk(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate new token
+    const newToken = jwt.sign({ id: user.id, role: user.role });
+
+    return res.json({
+      message: 'Token refreshed successfully',
+      token: newToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      expiresIn: '30d'
+    });
+  } catch (err) {
+    console.error('Token refresh error:', err);
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };

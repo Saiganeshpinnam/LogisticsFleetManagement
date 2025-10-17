@@ -14,6 +14,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.log('Token expired or invalid, redirecting to login...');
+      // Remove expired token
+      localStorage.removeItem("token");
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 
 // -------------------- Helper functions --------------------
@@ -33,9 +48,33 @@ export function removeToken() {
   localStorage.removeItem("token");
 }
 
-// Check login
+// Check if token is expired
+export function isTokenExpired() {
+  const token = getToken();
+  if (!token) return true;
+  
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const currentTime = Date.now() / 1000; // Convert to seconds
+    return payload.exp < currentTime;
+  } catch (err) {
+    console.error("Invalid token", err);
+    return true;
+  }
+}
+
+// Check login (including token expiration)
 export function isLoggedIn() {
-  return !!getToken();
+  const token = getToken();
+  if (!token) return false;
+  
+  if (isTokenExpired()) {
+    console.log('Token expired, removing from storage');
+    removeToken();
+    return false;
+  }
+  
+  return true;
 }
 
 // Decode role from JWT
