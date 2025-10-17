@@ -6,8 +6,16 @@ let sequelize;
 console.log('Initializing database connection...');
 console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('FORCE_SQLITE:', process.env.FORCE_SQLITE);
 
-if (process.env.DATABASE_URL) {
+if (process.env.FORCE_SQLITE === 'true') {
+  console.log('Forcing SQLite mode');
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false
+  });
+} else if (process.env.DATABASE_URL) {
   console.log('Using DATABASE_URL for cloud deployment');
   // Use DATABASE_URL for cloud deployments
   sequelize = new Sequelize(process.env.DATABASE_URL, {
@@ -31,7 +39,7 @@ if (process.env.DATABASE_URL) {
   // SQLite fallback for production if no DATABASE_URL
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './database.sqlite',
+    storage: ':memory:', // Use in-memory database for now
     logging: false
   });
 } else {
