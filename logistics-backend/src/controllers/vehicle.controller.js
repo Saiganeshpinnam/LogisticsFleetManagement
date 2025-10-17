@@ -2,14 +2,16 @@ const { Vehicle } = require('../models');
 
 // Create a new vehicle (Admin only)
 exports.createVehicle = async (req, res) => {
-  const { plateNumber, model } = req.body;
+  const { plateNumber, model, vehicleCode } = req.body;
 
   if (!plateNumber) {
     return res.status(400).json({ message: 'plateNumber is required' });
   }
 
   try {
-    const vehicle = await Vehicle.create({ plateNumber, model });
+    const payload = { plateNumber, model };
+    if (vehicleCode) payload.vehicleCode = vehicleCode;
+    const vehicle = await Vehicle.create(payload);
     return res.status(201).json({ message: 'Vehicle created successfully', vehicle });
   } catch (err) {
     console.error(err);

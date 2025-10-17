@@ -93,7 +93,7 @@ exports.cancelMyRequest = async (req, res) => {
 // Assign an existing delivery to a driver and vehicle (Admin only)
 exports.assignDelivery = async (req, res) => {
   const { id } = req.params;
-  const { driverId, vehicleId } = req.body;
+  const { driverId, vehicleId, customerId } = req.body;
   if (!driverId || !vehicleId) {
     return res.status(400).json({ message: 'driverId and vehicleId are required' });
   }
@@ -102,19 +102,25 @@ exports.assignDelivery = async (req, res) => {
     if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
 
     // Validate FKs
-    const [driver, vehicle] = await Promise.all([
+    const lookups = [
       User.findByPk(driverId),
       Vehicle.findByPk(vehicleId),
-    ]);
+      customerId ? User.findByPk(customerId) : Promise.resolve(null)
+    ];
+    const [driver, vehicle, customer] = await Promise.all(lookups);
     if (!driver || driver.role !== 'Driver') {
       return res.status(400).json({ message: 'Driver not found' });
     }
     if (!vehicle) {
       return res.status(400).json({ message: 'Vehicle not found' });
     }
+    if (customerId && (!customer || customer.role !== 'Customer')) {
+      return res.status(400).json({ message: 'Customer not found' });
+    }
 
     delivery.driverId = driverId;
     delivery.vehicleId = vehicleId;
+    if (customerId) delivery.customerId = customerId;
     await delivery.save();
 
     // notify assigned driver and customer to refresh

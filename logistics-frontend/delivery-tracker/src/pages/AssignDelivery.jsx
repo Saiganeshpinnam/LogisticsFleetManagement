@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
-import axios, { getToken } from "../services/api";
+import axios from "../services/api";
 
 export default function AssignDelivery() {
   const [form, setForm] = useState({
-    pickupAddress: "",
-    dropAddress: "",
     driverId: "",
     vehicleId: "",
-    scheduledStart: "",
-    scheduledEnd: "",
+    deliveryItemId: "",
     customerId: "",
   });
 
@@ -19,16 +16,13 @@ export default function AssignDelivery() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // Fetch data from backend
+  // Fetch drivers, vehicles, customers
   const fetchData = async () => {
     try {
-      const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
-
       const [driversRes, vehiclesRes, customersRes] = await Promise.all([
-        axios.get("/api/users/drivers", { headers }),
-        axios.get("/api/vehicles", { headers }),
-        axios.get("/api/users/customers", { headers }),
+        axios.get("/users", { params: { role: "Driver" } }),
+        axios.get("/vehicles"),
+        axios.get("/users", { params: { role: "Customer" } }),
       ]);
 
       setDrivers(driversRes.data);
@@ -49,21 +43,15 @@ export default function AssignDelivery() {
     setError("");
 
     try {
-      const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
-
-      await axios.post("/api/deliveries", form, { headers });
+      const { driverId, vehicleId, deliveryItemId, customerId } = form;
+      if (!driverId || !vehicleId || !deliveryItemId) {
+        setError("Please provide driverId, vehicleId and deliveryItemId");
+        return;
+      }
+      await axios.put(`/deliveries/${deliveryItemId}/assign`, { driverId, vehicleId, customerId: customerId || undefined });
       alert("Delivery assigned successfully!");
 
-      setForm({
-        pickupAddress: "",
-        dropAddress: "",
-        driverId: "",
-        vehicleId: "",
-        scheduledStart: "",
-        scheduledEnd: "",
-        customerId: "",
-      });
+      setForm({ driverId: "", vehicleId: "", deliveryItemId: "", customerId: "" });
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || "Error assigning delivery");
@@ -77,18 +65,9 @@ export default function AssignDelivery() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
-          name="pickupAddress"
-          placeholder="Pickup Address"
-          value={form.pickupAddress}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
-
-        <input
-          name="dropAddress"
-          placeholder="Drop Address"
-          value={form.dropAddress}
+          name="deliveryItemId"
+          placeholder="Delivery Item ID"
+          value={form.deliveryItemId}
           onChange={handleChange}
           className="w-full p-2 border rounded"
           required
@@ -129,9 +108,8 @@ export default function AssignDelivery() {
           value={form.customerId}
           onChange={handleChange}
           className="w-full p-2 border rounded"
-          required
         >
-          <option value="">Select Customer</option>
+          <option value="">Select Customer (optional)</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name} ({c.email})
@@ -139,23 +117,7 @@ export default function AssignDelivery() {
           ))}
         </select>
 
-        <input
-          type="datetime-local"
-          name="scheduledStart"
-          value={form.scheduledStart}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
-
-        <input
-          type="datetime-local"
-          name="scheduledEnd"
-          value={form.scheduledEnd}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+        {/* Removed customer and schedule fields for simplified assignment */}
 
         <button
           type="submit"

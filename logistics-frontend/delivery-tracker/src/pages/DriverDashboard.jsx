@@ -154,6 +154,14 @@ export default function DriverDashboard() {
     setError("");
     try {
       await axios.put(`/deliveries/${id}/status`, { status });
+      // Auto manage GPS sharing based on status
+      if (status === 'on_route') {
+        // Start route when picked up
+        startRoute(id);
+      } else if (status === 'delivered') {
+        // Stop route when delivered
+        stopRoute(id);
+      }
       loadDeliveries();
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -209,34 +217,43 @@ export default function DriverDashboard() {
                 </p>
 
                 <div className="flex gap-3 mt-4 flex-wrap">
-                  {!activeIntervals[d.id] ? (
-                    <button
-                      onClick={() => startRoute(d.id)}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-                    >
-                      Start Route
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => stopRoute(d.id)}
-                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
-                    >
-                      Stop Route
-                    </button>
-                  )}
+                  {d.status === 'delivered' ? null : (
+                    <>
+                      {d.status === 'on_route' ? (
+                        <button
+                          onClick={() => stopRoute(d.id)}
+                          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                        >
+                          Stop Route
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => startRoute(d.id)}
+                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+                        >
+                          Start Route
+                        </button>
+                      )}
 
-                  <button
-                    onClick={() => updateStatus(d.id, "on_route")}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-                  >
-                    Picked Up
-                  </button>
-                  <button
-                    onClick={() => updateStatus(d.id, "delivered")}
-                    className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 transition"
-                  >
-                    Delivered
-                  </button>
+                      {d.status !== 'delivered' && (
+                        <button
+                          onClick={() => updateStatus(d.id, 'on_route')}
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                        >
+                          Picked Up
+                        </button>
+                      )}
+
+                      {d.status !== 'delivered' && (
+                        <button
+                          onClick={() => updateStatus(d.id, 'delivered')}
+                          className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 transition"
+                        >
+                          Delivered
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             ))}

@@ -8,6 +8,7 @@ export default function AdminDashboard() {
   const [deliveries, setDeliveries] = useState([]);
   const [newVehicle, setNewVehicle] = useState("");
   const [newVehicleModel, setNewVehicleModel] = useState("");
+  const [newVehicleCode, setNewVehicleCode] = useState("");
   const [error, setError] = useState("");
   const [drivers, setDrivers] = useState([]);
   const [assignSelections, setAssignSelections] = useState({}); // { [deliveryId]: { driverId, vehicleId } }
@@ -69,9 +70,10 @@ export default function AdminDashboard() {
     e.preventDefault();
     setError("");
     try {
-      await axios.post("/vehicles", { plateNumber: newVehicle, model: newVehicleModel });
+      await axios.post("/vehicles", { plateNumber: newVehicle, model: newVehicleModel, vehicleCode: newVehicleCode || undefined });
       setNewVehicle("");
       setNewVehicleModel("");
+      setNewVehicleCode("");
       fetchData();
     } catch (err) {
       console.error("Add vehicle error:", err);
@@ -97,7 +99,7 @@ export default function AdminDashboard() {
         {/* Vehicle Form */}
         <form onSubmit={addVehicle} className="mb-6 bg-white p-4 rounded shadow transition-all duration-300 hover:shadow-md">
           <h3 className="font-semibold mb-2">Add Vehicle</h3>
-          <div className="grid grid-cols-3 gap-2 items-center">
+          <div className="grid grid-cols-4 gap-2 items-center">
             <input
               value={newVehicle}
               onChange={(e) => setNewVehicle(e.target.value)}
@@ -109,6 +111,12 @@ export default function AdminDashboard() {
               value={newVehicleModel}
               onChange={(e) => setNewVehicleModel(e.target.value)}
               placeholder="Model (optional)"
+              className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <input
+              value={newVehicleCode}
+              onChange={(e) => setNewVehicleCode(e.target.value)}
+              placeholder="Vehicle ID (optional)"
               className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
             <button className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded transition-transform duration-200 hover:bg-blue-700 active:scale-95">
@@ -134,26 +142,30 @@ export default function AdminDashboard() {
         <div className="mt-6 bg-white p-4 rounded shadow transition-all duration-300 hover:shadow-md">
           <h3 className="font-semibold mb-2">All Deliveries</h3>
           <div className="text-sm text-gray-500 mb-2">Vehicles loaded: {vehicles.length}</div>
-          <table className="w-full border">
+          <div className="overflow-x-auto overflow-y-visible">
+          <table className="min-w-[960px] md:min-w-full w-full border">
             <thead className="bg-blue-100">
               <tr>
-                <th>ID</th>
-                <th>Pickup</th>
-                <th>Drop</th>
-                <th>Product</th>
-                <th>Status</th>
-                <th>Assign</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">ID</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Pickup</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Drop</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Product</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Status</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">deliveryItemId</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">DriverId</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Vehicle</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Assign</th>
               </tr>
             </thead>
             <tbody>
               {deliveries.map((d) => (
-                <tr key={d.id} className="text-center border-t hover:bg-blue-50 transition-colors">
-                  <td>{d.id}</td>
-                  <td>{d.pickupAddress}</td>
-                  <td>{d.dropAddress}</td>
+                <tr key={d.id} className="border-t hover:bg-blue-50 transition-colors">
+                  <td className="whitespace-nowrap px-2 py-2">{d.id}</td>
+                  <td className="px-2 py-2">{d.pickupAddress}</td>
+                  <td className="px-2 py-2">{d.dropAddress}</td>
                   <td>
                     {d.productUrl ? (
-                      <div className="flex items-center gap-2 justify-center">
+                      <div className="flex items-center gap-2">
                         {d.productImage && (
                           <img src={d.productImage} alt={d.productTitle || 'Product'} className="w-10 h-10 object-cover rounded" />
                         )}
@@ -168,54 +180,56 @@ export default function AdminDashboard() {
                       <span className="text-gray-400 text-sm">—</span>
                     )}
                   </td>
-                  <td>{d.status}</td>
-                  <td>
+                  <td className="whitespace-nowrap px-2 py-2">{d.status}</td>
+                  <td className="whitespace-nowrap px-2 py-2">{d.id}</td>
+                  <td className="px-2 py-2 overflow-visible">
+                    <select
+                      className="relative z-20 border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-40 md:w-48 bg-white"
+                      value={assignSelections[d.id]?.driverId || ""}
+                      onChange={(e) => setAssignSelections((prev) => ({
+                        ...prev,
+                        [d.id]: { ...(prev[d.id]||{}), driverId: e.target.value },
+                      }))}
+                    >
+                      <option value="">Driver</option>
+                      {drivers.map((u) => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-2 py-2 overflow-visible">
+                    <select
+                      className="relative z-20 border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-36 md:w-44 bg-white"
+                      value={assignSelections[d.id]?.vehicleId || ""}
+                      onChange={(e) => setAssignSelections((prev) => ({
+                        ...prev,
+                        [d.id]: { ...(prev[d.id]||{}), vehicleId: e.target.value },
+                      }))}
+                    >
+                      <option value="">Vehicle</option>
+                      {vehicles.map((v) => (
+                        <option key={v.id} value={v.id}>{v.plateNumber}{v.model ? ` - ${v.model}` : ""}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap">
                     {d.driverId && d.vehicleId ? (
                       <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded text-sm animate-pulse">Assigned</span>
                     ) : (
-                      <div className="flex gap-2 items-center justify-center">
-                        <select
-                          className="border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                          value={assignSelections[d.id]?.driverId || ""}
-                          onChange={(e) => setAssignSelections((prev) => ({
-                            ...prev,
-                            [d.id]: { ...(prev[d.id]||{}), driverId: e.target.value },
-                          }))}
-                          disabled={!!(d.driverId && d.vehicleId)}
-                        >
-                          <option value="">Driver</option>
-                          {drivers.map((u) => (
-                            <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                          ))}
-                        </select>
-                        <select
-                          className="border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                          value={assignSelections[d.id]?.vehicleId || ""}
-                          onChange={(e) => setAssignSelections((prev) => ({
-                            ...prev,
-                            [d.id]: { ...(prev[d.id]||{}), vehicleId: e.target.value },
-                          }))}
-                          disabled={!!(d.driverId && d.vehicleId)}
-                        >
-                          <option value="">Vehicle</option>
-                          {vehicles.map((v) => (
-                            <option key={v.id} value={v.id}>{v.plateNumber}{v.model ? ` - ${v.model}` : ""}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => assignDelivery(d.id)}
-                          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded disabled:opacity-50 transition-transform duration-200 hover:bg-blue-700 active:scale-95"
-                          disabled={!!(d.driverId && d.vehicleId)}
-                        >
-                          {d.driverId && d.vehicleId ? 'Assigned' : 'Assign'}
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => assignDelivery(d.id)}
+                        className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded disabled:opacity-50 transition-transform duration-200 hover:bg-blue-700 active:scale-95"
+                        disabled={!!(d.driverId && d.vehicleId) || !(assignSelections[d.id]?.driverId && assignSelections[d.id]?.vehicleId)}
+                      >
+                        Assign
+                      </button>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

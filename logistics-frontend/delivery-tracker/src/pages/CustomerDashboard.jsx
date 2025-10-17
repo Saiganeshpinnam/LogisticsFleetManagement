@@ -210,7 +210,7 @@ export default function CustomerDashboard() {
                   <strong>Drop:</strong> {d.dropAddress} <br />
                   <strong>Status:</strong>{" "}
                   <span
-                    className={`${
+                    className={`$
                       d.status === "delivered"
                         ? "text-green-600"
                         : d.status === "on_route"
@@ -221,16 +221,19 @@ export default function CustomerDashboard() {
                     {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : "Pending"}
                   </span>
                 </p>
-                {(d.status === 'pending' && !d.driverId && !d.vehicleId) && (
-                  <div className="mt-3">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleCancel(d.id); }}
-                      className="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700 active:scale-95 transition"
-                    >
-                      Cancel Request
-                    </button>
-                  </div>
-                )}
+                <div className="mt-3">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleCancel(d.id); }}
+                    disabled={d.status !== 'pending'}
+                    className={`px-3 py-1.5 text-sm rounded transition active:scale-95 ${
+                      d.status === 'pending'
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    Cancel Request
+                  </button>
+                </div>
               </div>
             ))}
           </div>
