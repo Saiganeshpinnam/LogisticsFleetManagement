@@ -1,6 +1,7 @@
 const { Delivery, Tracking, User, Vehicle } = require('../models');
 const { getIO } = require('../utils/socketManager');
 const { hasConflict } = require('../utils/conflictCheck');
+const { geocodeAddress, geocodeAddressFallback } = require('../utils/geocoding');
 
 // Create a new delivery (Admin only)
 exports.createDelivery = async (req, res) => {
@@ -217,6 +218,17 @@ exports.createRequest = async (req, res) => {
     if (!pickupAddress || !dropAddress) {
       return res.status(400).json({ message: 'pickupAddress and dropAddress are required' });
     }
+
+    // Geocode addresses in parallel
+    console.log('Geocoding addresses...');
+    const [pickupGeocode, dropGeocode] = await Promise.all([
+      geocodeAddress(pickupAddress).catch(() => geocodeAddressFallback(pickupAddress)),
+      geocodeAddress(dropAddress).catch(() => geocodeAddressFallback(dropAddress))
+    ]);
+
+    console.log('Pickup geocode:', pickupGeocode);
+    console.log('Drop geocode:', dropGeocode);
+
     let productTitle, productImage, productPrice;
     if (productUrl) {
       try {
@@ -249,6 +261,17 @@ exports.createRequest = async (req, res) => {
       productTitle: productTitle || null,
       productImage: productImage || null,
       productPrice: productPrice || null,
+      
+      // Add geocoded coordinates
+      pickupLatitude: pickupGeocode?.latitude || null,
+      pickupLongitude: pickupGeocode?.longitude || null,
+      pickupFormattedAddress: pickupGeocode?.formattedAddress || null,
+      pickupPlaceId: pickupGeocode?.placeId || null,
+      
+      dropLatitude: dropGeocode?.latitude || null,
+      dropLongitude: dropGeocode?.longitude || null,
+      dropFormattedAddress: dropGeocode?.formattedAddress || null,
+      dropPlaceId: dropGeocode?.placeId || null,
     });
 
     // notify: customer list and admins dashboard

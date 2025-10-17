@@ -3,6 +3,7 @@ import axios from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
+import SimpleAddressAutocomplete from "../components/SimpleAddressAutocomplete";
 import { getUserId } from "../services/api";
 
 export default function CustomerDashboard() {
@@ -150,30 +151,50 @@ export default function CustomerDashboard() {
         )}
 
         {/* Request Delivery Form */}
-        <form onSubmit={submitRequest} className="mb-6 bg-white p-4 rounded shadow transition-all duration-300 hover:shadow-md">
-          <h3 className="font-semibold mb-2">Request a Delivery</h3>
-          <div className="grid grid-cols-3 gap-2 items-center">
-            <input
-              value={requestForm.pickupAddress}
-              onChange={(e) => setRequestForm({ ...requestForm, pickupAddress: e.target.value })}
-              placeholder="Pickup address"
-              className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-              required
-            />
-            <input
-              value={requestForm.dropAddress}
-              onChange={(e) => setRequestForm({ ...requestForm, dropAddress: e.target.value })}
-              placeholder="Drop address"
-              className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-              required
-            />
-            <input
-              value={requestForm.productUrl}
-              onChange={(e) => setRequestForm({ ...requestForm, productUrl: e.target.value })}
-              placeholder="Product link (Flipkart/Amazon/Myntra)"
-              className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 col-span-2 md:col-span-1"
-            />
-            <button className="bg-green-600 text-white px-3 py-1.5 text-sm rounded transition-transform duration-200 hover:bg-green-700 active:scale-95">Request</button>
+        <form onSubmit={submitRequest} className="mb-6 bg-white p-6 rounded-lg shadow transition-all duration-300 hover:shadow-md">
+          <h3 className="font-semibold mb-4 text-lg text-gray-800">Request a Delivery</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Pickup Address</label>
+              <SimpleAddressAutocomplete
+                value={requestForm.pickupAddress}
+                onChange={(value) => setRequestForm({ ...requestForm, pickupAddress: value })}
+                placeholder="Enter pickup address (e.g., Mumbai, Delhi, Bangalore)"
+                className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Drop Address</label>
+              <SimpleAddressAutocomplete
+                value={requestForm.dropAddress}
+                onChange={(value) => setRequestForm({ ...requestForm, dropAddress: value })}
+                placeholder="Enter drop address (e.g., Chennai, Pune, Hyderabad)"
+                className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Product Link (Optional)</label>
+              <input
+                type="url"
+                value={requestForm.productUrl}
+                onChange={(e) => setRequestForm({ ...requestForm, productUrl: e.target.value })}
+                placeholder="Product link (Flipkart/Amazon/Myntra)"
+                className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+          </div>
+          
+          <div className="mt-6 flex justify-end">
+            <button 
+              type="submit"
+              className="bg-green-600 text-white px-6 py-3 rounded-md font-medium transition-all duration-200 hover:bg-green-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              Request Delivery
+            </button>
           </div>
         </form>
 
