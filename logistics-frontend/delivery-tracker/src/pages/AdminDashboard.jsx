@@ -3,6 +3,7 @@ import axios from "../services/api";
 import Navbar from "../components/Navbar";
 import socket from "../services/socket";
 import { getUser } from "../services/api";
+import DriverAnalytics from "../components/DriverAnalytics";
 
 export default function AdminDashboard() {
   const [vehicles, setVehicles] = useState([]);
@@ -145,6 +146,9 @@ export default function AdminDashboard() {
             {error}
           </div>
         )}
+
+        {/* Driver Analytics Section */}
+        <DriverAnalytics />
 
         {/* Vehicle Form */}
         <form onSubmit={addVehicle} className="mb-6 bg-white p-4 rounded shadow transition-all duration-300 hover:shadow-md">
