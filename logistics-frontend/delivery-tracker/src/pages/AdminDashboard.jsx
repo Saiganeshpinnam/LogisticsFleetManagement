@@ -38,6 +38,21 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Subscribe to drivers updates when new drivers register
+  useEffect(() => {
+    const driverHandler = () => {
+      // Refresh drivers list when new drivers register
+      axios.get("/users", { params: { role: "Driver" } })
+        .then(res => setDrivers(res.data))
+        .catch(err => console.error("Failed to refresh drivers:", err));
+    };
+
+    socket.on("drivers-updated", driverHandler);
+    return () => {
+      socket.off("drivers-updated", driverHandler);
+    };
+  }, []);
+
   const assignDelivery = async (deliveryId) => {
     setError("");
     try {

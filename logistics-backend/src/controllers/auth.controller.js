@@ -1,6 +1,7 @@
 const { User } = require('../models');
 const jwt = require('../config/jwt'); // Use your helper
 const bcrypt = require('bcrypt');
+const { getIO } = require('../utils/socketManager');
 
 // Allowed roles
 const ROLES = ['Admin', 'Driver', 'Customer'];
@@ -35,6 +36,18 @@ exports.register = async (req, res) => {
     });
 
     console.log('User registered successfully:', { id: user.id, email: user.email, role: user.role });
+
+    // Emit socket event to notify admins of new driver registration
+    try {
+      const io = getIO();
+      if (role === 'Driver') {
+        io.to('admins').emit('drivers-updated');
+        console.log('✅ Emitted drivers-updated event for new driver');
+      }
+    } catch (socketError) {
+      console.warn('Socket emission failed:', socketError.message);
+      // Don't fail registration if socket fails
+    }
 
     // Return user info (without password)
     return res.status(201).json({
@@ -94,7 +107,7 @@ exports.login = async (req, res) => {
     }
 
     // Generate JWT
-    const token = jwt.sign({ id: user.id, role: user.role });
+    const token = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role });
 
     console.log('Login successful for user:', email);
     return res.json({
@@ -135,7 +148,7 @@ exports.refreshToken = async (req, res) => {
     }
 
     // Generate new token
-    const newToken = jwt.sign({ id: user.id, role: user.role });
+    const newToken = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role });
 
     return res.json({
       message: 'Token refreshed successfully',

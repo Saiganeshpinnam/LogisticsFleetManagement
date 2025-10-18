@@ -130,6 +130,7 @@ exports.assignDelivery = async (req, res) => {
       if (delivery.driverId) io.to(`user-${delivery.driverId}`).emit('deliveries-updated');
       if (delivery.customerId) io.to(`user-${delivery.customerId}`).emit('deliveries-updated');
       io.to('admins').emit('deliveries-updated');
+      io.to('admins').emit('drivers-updated'); // Also refresh drivers list since assignments affect availability
     } catch (_) {}
 
     return res.json({ message: 'Delivery assigned', delivery });
