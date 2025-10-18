@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import socket from "../services/socket";
 import "leaflet/dist/leaflet.css";
@@ -25,8 +25,16 @@ function RecenterMap({ position }) {
   return null;
 }
 
-export default function MapTracker({ deliveryId, driverLocation, destination }) {
-  const [position, setPosition] = useState([17.385, 78.4867]); // Default Hyderabad
+export default function MapTracker({ deliveryId, driverLocation, destination, pickup }) {
+  // Use pickup coordinates as initial position if available, otherwise fallback to Hyderabad
+  const getInitialPosition = () => {
+    if (pickup && Array.isArray(pickup) && pickup.length === 2) {
+      return pickup;
+    }
+    return [17.385, 78.4867]; // Default Hyderabad fallback
+  };
+
+  const [position, setPosition] = useState(getInitialPosition);
   const [route, setRoute] = useState([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [routeError, setRouteError] = useState('');
@@ -34,7 +42,7 @@ export default function MapTracker({ deliveryId, driverLocation, destination }) 
   const [lastRoutePosition, setLastRoutePosition] = useState(null);
 
   // Calculate distance between two points (Haversine formula)
-  const calculateDistance = (pos1, pos2) => {
+  const calculateDistance = useCallback((pos1, pos2) => {
     const R = 6371; // Earth's radius in km
     const dLat = (pos2[0] - pos1[0]) * Math.PI / 180;
     const dLon = (pos2[1] - pos1[1]) * Math.PI / 180;
@@ -43,10 +51,10 @@ export default function MapTracker({ deliveryId, driverLocation, destination }) 
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c; // Distance in km
-  };
+  }, []);
 
   // Fetch route from current position to destination
-  const fetchRoute = async (start, end) => {
+  const fetchRoute = useCallback(async (start, end) => {
     if (!start || !end || start.length !== 2 || end.length !== 2) return;
     
     setIsLoadingRoute(true);
@@ -84,7 +92,7 @@ export default function MapTracker({ deliveryId, driverLocation, destination }) 
     } finally {
       setIsLoadingRoute(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const channel = `delivery-${deliveryId}`;
@@ -110,14 +118,16 @@ export default function MapTracker({ deliveryId, driverLocation, destination }) 
       socket.emit("unsubscribe-delivery", deliveryId);
       socket.off(channel, handleLocationUpdate);
     };
-  }, [deliveryId, destination]);
+  }, [deliveryId, destination, lastRoutePosition, calculateDistance, fetchRoute]);
 
   // Initial route calculation when destination changes
   useEffect(() => {
     if (destination && Array.isArray(destination) && destination.length === 2) {
-      fetchRoute(position, destination);
+      // Use pickup as starting point if available, otherwise use current position
+      const startPosition = (pickup && Array.isArray(pickup) && pickup.length === 2) ? pickup : position;
+      fetchRoute(startPosition, destination);
     }
-  }, [destination]);
+  }, [destination, pickup, position]);
 
   return (
     <div className="space-y-4">
@@ -163,8 +173,28 @@ export default function MapTracker({ deliveryId, driverLocation, destination }) 
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> | Route by <a href="http://project-osrm.org/">OSRM</a>'
           />
           
+          {/* Pickup Marker */}
+          {pickup && Array.isArray(pickup) && pickup.length === 2 && (
+            <Marker
+              position={pickup}
+              icon={L.divIcon({
+                className: 'custom-pickup-marker',
+                html: `<div style="background-color: #3B82F6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+              })}
+            >
+              <Popup>
+                <div className="text-center">
+                  <div className="font-semibold text-blue-700">📦 Pickup Location</div>
+                  <div className="text-sm text-gray-600">Delivery pickup point</div>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
           {/* Driver Marker */}
-          <Marker 
+          <Marker
             position={position}
             icon={L.divIcon({
               className: 'custom-driver-marker',
@@ -183,7 +213,7 @@ export default function MapTracker({ deliveryId, driverLocation, destination }) 
 
           {/* Destination Marker */}
           {destination && Array.isArray(destination) && destination.length === 2 && (
-            <Marker 
+            <Marker
               position={destination}
               icon={L.divIcon({
                 className: 'custom-destination-marker',

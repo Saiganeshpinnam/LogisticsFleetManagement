@@ -2,6 +2,7 @@ const { Delivery, Tracking, User, Vehicle } = require('../models');
 const { getIO } = require('../utils/socketManager');
 const { hasConflict } = require('../utils/conflictCheck');
 const { geocodeAddress, geocodeAddressFallback } = require('../utils/geocoding');
+const { calculateDistance, calculateDeliveryPricing } = require('../utils/pricing');
 
 // Create a new delivery (Admin only)
 exports.createDelivery = async (req, res) => {
@@ -203,7 +204,15 @@ exports.getTrack = async (req, res) => {
 // Get all deliveries (Admin only)
 exports.getDeliveries = async (req, res) => {
   try {
-    const deliveries = await Delivery.findAll();
+    const deliveries = await Delivery.findAll({
+      attributes: [
+        'id', 'pickupAddress', 'dropAddress', 'status', 'scheduledStart', 'scheduledEnd',
+        'productUrl', 'productTitle', 'productImage', 'productPrice',
+        'pickupLatitude', 'pickupLongitude', 'pickupFormattedAddress', 'pickupPlaceId',
+        'dropLatitude', 'dropLongitude', 'dropFormattedAddress', 'dropPlaceId',
+        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice'
+      ]
+    });
     return res.json(deliveries);
   } catch (err) {
     console.error(err);
@@ -215,7 +224,8 @@ exports.getDeliveries = async (req, res) => {
 exports.createRequest = async (req, res) => {
   try {
     const customerId = req.user.id;
-    const { pickupAddress, dropAddress, productUrl } = req.body;
+    const { pickupAddress, dropAddress, productUrl, logisticType = 'standard', vehicleType = 'two_wheeler', logisticCategory = 'goods_shifting' } = req.body;
+
     if (!pickupAddress || !dropAddress) {
       return res.status(400).json({ message: 'pickupAddress and dropAddress are required' });
     }
@@ -229,6 +239,21 @@ exports.createRequest = async (req, res) => {
 
     console.log('Pickup geocode:', pickupGeocode);
     console.log('Drop geocode:', dropGeocode);
+
+    // Calculate distance between pickup and drop coordinates
+    let distanceKm = 1.0; // Default minimum distance
+    if (pickupGeocode?.latitude && pickupGeocode?.longitude && dropGeocode?.latitude && dropGeocode?.longitude) {
+      distanceKm = calculateDistance(
+        pickupGeocode.latitude,
+        pickupGeocode.longitude,
+        dropGeocode.latitude,
+        dropGeocode.longitude
+      );
+      console.log('Calculated distance:', distanceKm, 'km');
+    }
+
+    // Calculate pricing based on vehicle type, logistic category, and distance
+    const pricing = calculateDeliveryPricing(vehicleType, logisticCategory, distanceKm);
 
     let productTitle, productImage, productPrice;
     if (productUrl) {
@@ -262,17 +287,34 @@ exports.createRequest = async (req, res) => {
       productTitle: productTitle || null,
       productImage: productImage || null,
       productPrice: productPrice || null,
-      
+      logisticType: logisticType || 'standard',
+      vehicleType: vehicleType || 'two_wheeler',
+      logisticCategory: logisticCategory || 'goods_shifting',
+      distanceKm: distanceKm,
+      unitPrice: pricing.unitPrice,
+      totalPrice: pricing.totalPrice,
+
       // Add geocoded coordinates
       pickupLatitude: pickupGeocode?.latitude || null,
       pickupLongitude: pickupGeocode?.longitude || null,
       pickupFormattedAddress: pickupGeocode?.formattedAddress || null,
       pickupPlaceId: pickupGeocode?.placeId || null,
-      
+
       dropLatitude: dropGeocode?.latitude || null,
       dropLongitude: dropGeocode?.longitude || null,
       dropFormattedAddress: dropGeocode?.formattedAddress || null,
       dropPlaceId: dropGeocode?.placeId || null,
+    });
+
+    // Get the created delivery with all fields including coordinates
+    const createdDelivery = await Delivery.findByPk(delivery.id, {
+      attributes: [
+        'id', 'pickupAddress', 'dropAddress', 'status', 'scheduledStart', 'scheduledEnd',
+        'productUrl', 'productTitle', 'productImage', 'productPrice',
+        'pickupLatitude', 'pickupLongitude', 'pickupFormattedAddress', 'pickupPlaceId',
+        'dropLatitude', 'dropLongitude', 'dropFormattedAddress', 'dropPlaceId',
+        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice'
+      ]
     });
 
     // notify: customer list and admins dashboard
@@ -282,7 +324,7 @@ exports.createRequest = async (req, res) => {
       io.to('admins').emit('deliveries-updated');
     } catch (_) {}
 
-    return res.status(201).json({ message: 'Request created', delivery });
+    return res.status(201).json({ message: 'Request created', delivery: createdDelivery });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error', error: err.message });
@@ -297,7 +339,16 @@ exports.getMyDeliveries = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const where = role === 'driver' ? { driverId: req.user.id } : role === 'customer' ? { customerId: req.user.id } : {};
-    const deliveries = await Delivery.findAll({ where });
+    const deliveries = await Delivery.findAll({
+      where,
+      attributes: [
+        'id', 'pickupAddress', 'dropAddress', 'status', 'scheduledStart', 'scheduledEnd',
+        'productUrl', 'productTitle', 'productImage', 'productPrice',
+        'pickupLatitude', 'pickupLongitude', 'pickupFormattedAddress', 'pickupPlaceId',
+        'dropLatitude', 'dropLongitude', 'dropFormattedAddress', 'dropPlaceId',
+        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice'
+      ]
+    });
     return res.json(deliveries);
   } catch (err) {
     console.error(err);

@@ -66,6 +66,13 @@ export default function AdminDashboard() {
         driverId: sel.driverId,
         vehicleId: sel.vehicleId,
       });
+
+      // Clear the selection for this delivery after successful assignment
+      setAssignSelections((prev) => ({
+        ...prev,
+        [deliveryId]: { driverId: "", vehicleId: "" },
+      }));
+
       fetchData();
     } catch (err) {
       console.error("Assign delivery error:", err);
@@ -203,11 +210,14 @@ export default function AdminDashboard() {
                 <th className="whitespace-nowrap px-2 py-2 text-left">ID</th>
                 <th className="whitespace-nowrap px-2 py-2 text-left">Pickup</th>
                 <th className="whitespace-nowrap px-2 py-2 text-left">Drop</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Vehicle</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Category</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Distance</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Unit Price</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Total Price</th>
                 <th className="whitespace-nowrap px-2 py-2 text-left">Product</th>
                 <th className="whitespace-nowrap px-2 py-2 text-left">Status</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">deliveryItemId</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">DriverId</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Vehicle</th>
+                <th className="whitespace-nowrap px-2 py-2 text-left">Driver</th>
                 <th className="whitespace-nowrap px-2 py-2 text-left">Assign</th>
               </tr>
             </thead>
@@ -217,6 +227,33 @@ export default function AdminDashboard() {
                   <td className="whitespace-nowrap px-2 py-2">{d.id}</td>
                   <td className="px-2 py-2">{d.pickupAddress}</td>
                   <td className="px-2 py-2">{d.dropAddress}</td>
+                  <td className="whitespace-nowrap px-2 py-2">
+                    {d.vehicleType ? (
+                      <span className="capitalize text-indigo-600 font-medium">
+                        {d.vehicleType === "two_wheeler" ? "Two Wheeler" : d.vehicleType === "four_wheeler" ? "Four Wheeler" : "Six Wheeler"}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2">
+                    {d.logisticCategory ? (
+                      <span className="capitalize text-purple-600 font-medium">
+                        {d.logisticCategory === "home_shifting" ? "Home Shifting" : d.logisticCategory === "goods_shifting" ? "Goods Shifting" : d.logisticCategory === "materials_shifting" ? "Materials Shifting" : "Other"}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2">
+                    {d.distanceKm ? `${parseFloat(d.distanceKm).toFixed(1)} km` : <span className="text-gray-400 text-sm">—</span>}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2">
+                    {d.unitPrice ? `₹${parseFloat(d.unitPrice).toFixed(2)}` : <span className="text-gray-400 text-sm">—</span>}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2">
+                    {d.totalPrice ? `₹${parseFloat(d.totalPrice).toFixed(2)}` : <span className="text-gray-400 text-sm">—</span>}
+                  </td>
                   <td>
                     {d.productUrl ? (
                       <div className="flex items-center gap-2">
@@ -235,7 +272,6 @@ export default function AdminDashboard() {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-2 py-2">{d.status}</td>
-                  <td className="whitespace-nowrap px-2 py-2">{d.id}</td>
                   <td className="px-2 py-2 overflow-visible">
                     <select
                       className="relative z-20 border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-40 md:w-48 bg-white"
@@ -248,21 +284,6 @@ export default function AdminDashboard() {
                       <option value="">Driver</option>
                       {drivers.map((u) => (
                         <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-2 py-2 overflow-visible">
-                    <select
-                      className="relative z-20 border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-36 md:w-44 bg-white"
-                      value={assignSelections[d.id]?.vehicleId || ""}
-                      onChange={(e) => setAssignSelections((prev) => ({
-                        ...prev,
-                        [d.id]: { ...(prev[d.id]||{}), vehicleId: e.target.value },
-                      }))}
-                    >
-                      <option value="">Vehicle</option>
-                      {vehicles.map((v) => (
-                        <option key={v.id} value={v.id}>{v.plateNumber}{v.model ? ` - ${v.model}` : ""}</option>
                       ))}
                     </select>
                   </td>

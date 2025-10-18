@@ -1,10 +1,55 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
 import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomplete";
 import { getUserId, getUser } from "../services/api";
+
+// Pricing configuration (matches backend)
+const PRICING_CONFIG = {
+  two_wheeler: {
+    home_shifting: 15,    // ₹15 per km
+    goods_shifting: 12,   // ₹12 per km
+    materials_shifting: 10, // ₹10 per km
+    other: 13            // ₹13 per km
+  },
+  four_wheeler: {
+    home_shifting: 45,    // ₹45 per km
+    goods_shifting: 35,   // ₹35 per km
+    materials_shifting: 30, // ₹30 per km
+    other: 38            // ₹38 per km
+  },
+  six_wheeler: {
+    home_shifting: 90,    // ₹90 per km
+    goods_shifting: 75,   // ₹75 per km
+    materials_shifting: 65, // ₹65 per km
+    other: 80            // ₹80 per km
+  }
+};
+
+// Geocode address using Nominatim (matches backend)
+const geocodeAddress = async (address) => {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+    const response = await fetch(url, {
+      headers: { 'Accept-Language': 'en' }
+    });
+    const data = await response.json();
+
+    if (Array.isArray(data) && data.length > 0) {
+      return {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+        formattedAddress: data[0].display_name
+      };
+    }
+    return null;
+  } catch (error) {
+    console.warn('Geocoding failed for:', address, error);
+    return null;
+  }
+};
 
 export default function CustomerDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -13,8 +58,83 @@ export default function CustomerDashboard() {
   const [error, setError] = useState("");
   const [destination, setDestination] = useState(null); // [lat, lng]
   const [etaHours, setEtaHours] = useState(null);
-  const [requestForm, setRequestForm] = useState({ pickupAddress: "", dropAddress: "", productUrl: "" });
+  const [pickup, setPickup] = useState(null); // [lat, lng]
+  const [requestForm, setRequestForm] = useState({ pickupAddress: "", dropAddress: "", productUrl: "", logisticType: "standard", vehicleType: "two_wheeler", logisticCategory: "goods_shifting" });
   const [user, setUser] = useState(null);
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [estimatedDistance, setEstimatedDistance] = useState(1.0);
+  const [coordinates, setCoordinates] = useState({ pickup: null, drop: null });
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+
+  // Pricing configuration (matches backend)
+  const PRICING_CONFIG = {
+    two_wheeler: {
+      home_shifting: 15,    // ₹15 per km
+      goods_shifting: 12,   // ₹12 per km
+      materials_shifting: 10, // ₹10 per km
+      other: 13            // ₹13 per km
+    },
+    four_wheeler: {
+      home_shifting: 45,    // ₹45 per km
+      goods_shifting: 35,   // ₹35 per km
+      materials_shifting: 30, // ₹30 per km
+      other: 38            // ₹38 per km
+    },
+    six_wheeler: {
+      home_shifting: 90,    // ₹90 per km
+      goods_shifting: 75,   // ₹75 per km
+      materials_shifting: 65, // ₹65 per km
+      other: 80            // ₹80 per km
+    }
+  };
+
+  // Calculate distance between two coordinates using Haversine formula (matches backend)
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    if (!lat1 || !lng1 || !lat2 || !lng2) return 1.0;
+
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return Math.round(distance * 100) / 100; // Round to 2 decimal places
+  };
+
+  // Calculate total price based on selections
+  const calculatePrice = (vehicleType, logisticCategory, distanceKm) => {
+    const unitPrice = PRICING_CONFIG[vehicleType]?.[logisticCategory] || 0;
+    return unitPrice * distanceKm;
+  };
+
+  // Geocode address using Nominatim (matches backend)
+  const geocodeAddress = async (address) => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+      const response = await fetch(url, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        return {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+          formattedAddress: data[0].display_name
+        };
+      }
+      return null;
+    } catch (error) {
+      console.warn('Geocoding failed for:', address, error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     // Load user profile information
@@ -26,10 +146,54 @@ export default function CustomerDashboard() {
     loadDeliveries();
   }, []);
 
-  // Debug: Monitor requestForm changes
+  // Calculate price whenever relevant fields change
   useEffect(() => {
-    console.log('requestForm state changed:', requestForm);
-  }, [requestForm]);
+    const price = calculatePrice(requestForm.vehicleType, requestForm.logisticCategory, estimatedDistance);
+    setCalculatedPrice(price);
+  }, [requestForm.vehicleType, requestForm.logisticCategory, estimatedDistance]);
+
+  // Geocode addresses and calculate distance when they change
+  useEffect(() => {
+    const geocodeAndCalculateDistance = async () => {
+      if (!requestForm.pickupAddress || !requestForm.dropAddress) {
+        setEstimatedDistance(1.0);
+        setCoordinates({ pickup: null, drop: null });
+        return;
+      }
+
+      setIsCalculatingDistance(true);
+
+      try {
+        const [pickupCoords, dropCoords] = await Promise.all([
+          geocodeAddress(requestForm.pickupAddress),
+          geocodeAddress(requestForm.dropAddress)
+        ]);
+
+        setCoordinates({ pickup: pickupCoords, drop: dropCoords });
+
+        if (pickupCoords && dropCoords) {
+          const distance = calculateDistance(
+            pickupCoords.latitude,
+            pickupCoords.longitude,
+            dropCoords.latitude,
+            dropCoords.longitude
+          );
+          setEstimatedDistance(distance);
+        } else {
+          setEstimatedDistance(1.0);
+        }
+      } catch (error) {
+        console.warn('Distance calculation failed:', error);
+        setEstimatedDistance(1.0);
+      } finally {
+        setIsCalculatingDistance(false);
+      }
+    };
+
+    // Debounce the geocoding to avoid too many API calls
+    const timeoutId = setTimeout(geocodeAndCalculateDistance, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [requestForm.pickupAddress, requestForm.dropAddress]);
 
   // Subscribe to user room to auto-refresh on new assignments
   useEffect(() => {
@@ -81,30 +245,74 @@ export default function CustomerDashboard() {
     };
   }, [selectedDelivery]);
 
-  // Geocode drop address when selection changes
+  // Geocode pickup address when selection changes - now using stored coordinates
   useEffect(() => {
     if (!selectedDelivery) return;
     const d = deliveries.find(x => x.id === selectedDelivery);
-    if (!d?.dropAddress) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        // Simple geocode using Nominatim (public OSM). In production, use a proper geocoding service with rate limiting.
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.dropAddress)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-        const data = await res.json();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-          setDestination([lat, lon]);
+    if (!d) return;
+
+    // Use stored coordinates if available, fallback to geocoding
+    if (d.pickupLatitude && d.pickupLongitude) {
+      setPickup([parseFloat(d.pickupLatitude), parseFloat(d.pickupLongitude)]);
+    } else if (d.pickupAddress) {
+      // Fallback geocoding using Nominatim (only if coordinates not stored)
+      let cancelled = false;
+      (async () => {
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.pickupAddress)}`;
+          const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+          const data = await res.json();
+          if (!cancelled && Array.isArray(data) && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            setPickup([lat, lon]);
+          } else {
+            setPickup(null);
+          }
+        } catch (e) {
+          console.warn('Geocode failed', e);
+          setPickup(null);
         }
-      } catch (e) {
-        // Non-fatal for UI
-        console.warn('Geocode failed', e);
-        setDestination(null);
-      }
-    })();
-    return () => { cancelled = true; };
+      })();
+      return () => { cancelled = true; };
+    } else {
+      setPickup(null);
+    }
+  }, [selectedDelivery, deliveries]);
+
+  // Geocode drop address when selection changes - now using stored coordinates
+  useEffect(() => {
+    if (!selectedDelivery) return;
+    const d = deliveries.find(x => x.id === selectedDelivery);
+    if (!d) return;
+
+    // Use stored coordinates if available, fallback to geocoding
+    if (d.dropLatitude && d.dropLongitude) {
+      setDestination([parseFloat(d.dropLatitude), parseFloat(d.dropLongitude)]);
+    } else if (d.dropAddress) {
+      // Fallback geocoding using Nominatim (only if coordinates not stored)
+      let cancelled = false;
+      (async () => {
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.dropAddress)}`;
+          const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+          const data = await res.json();
+          if (!cancelled && Array.isArray(data) && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            setDestination([lat, lon]);
+          } else {
+            setDestination(null);
+          }
+        } catch (e) {
+          console.warn('Geocode failed', e);
+          setDestination(null);
+        }
+      })();
+      return () => { cancelled = true; };
+    } else {
+      setDestination(null);
+    }
   }, [selectedDelivery, deliveries]);
 
   // Compute ETA whenever we have both driverLocation and destination
@@ -143,9 +351,9 @@ export default function CustomerDashboard() {
     e.preventDefault();
     setError("");
     try {
-      const { pickupAddress, dropAddress, productUrl } = requestForm;
-      await axios.post('/deliveries/request', { pickupAddress, dropAddress, productUrl });
-      setRequestForm({ pickupAddress: "", dropAddress: "", productUrl: "" });
+      const { pickupAddress, dropAddress, productUrl, logisticType, vehicleType, logisticCategory } = requestForm;
+      await axios.post('/deliveries/request', { pickupAddress, dropAddress, productUrl, logisticType, vehicleType, logisticCategory });
+      setRequestForm({ pickupAddress: "", dropAddress: "", productUrl: "", logisticType: "standard", vehicleType: "two_wheeler", logisticCategory: "goods_shifting" });
       await loadDeliveries();
     } catch (err) {
       console.error('Request delivery error:', err);
@@ -259,6 +467,78 @@ export default function CustomerDashboard() {
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
+              <select
+                value={requestForm.vehicleType}
+                onChange={(e) => setRequestForm({ ...requestForm, vehicleType: e.target.value })}
+                className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                required
+              >
+                <option value="two_wheeler">Two Wheeler</option>
+                <option value="four_wheeler">Four Wheeler</option>
+                <option value="six_wheeler">Six Wheeler</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Logistic Category</label>
+              <select
+                value={requestForm.logisticCategory}
+                onChange={(e) => setRequestForm({ ...requestForm, logisticCategory: e.target.value })}
+                className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                required
+              >
+                <option value="home_shifting">Home Shifting</option>
+                <option value="goods_shifting">Goods Shifting</option>
+                <option value="materials_shifting">Materials Shifting</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Estimated Distance</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  value={estimatedDistance}
+                  readOnly
+                  placeholder="Distance in km"
+                  className={`flex-1 border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isCalculatingDistance ? 'bg-gray-100' : 'bg-white'}`}
+                  required
+                />
+                <span className="text-sm text-gray-600">km</span>
+                {isCalculatingDistance && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Distance is automatically calculated from pickup and drop addresses
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Distance:</span>
+                <span className="text-lg font-semibold text-blue-600">{estimatedDistance} km</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Rate per km:</span>
+                <span className="text-lg font-semibold text-purple-600">₹{PRICING_CONFIG[requestForm.vehicleType]?.[requestForm.logisticCategory] || 0}</span>
+              </div>
+              <hr className="border-gray-200" />
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Total Price:</span>
+                <span className="text-xl font-bold text-green-600">₹{calculatedPrice.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
           
           <div className="mt-6 flex justify-end">
             <button 
@@ -313,6 +593,48 @@ export default function CustomerDashboard() {
                   >
                     {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : "Pending"}
                   </span>
+                  {d.vehicleType && (
+                    <>
+                      <br />
+                      <strong>Vehicle:</strong>{" "}
+                      <span className="capitalize text-indigo-600 font-medium">
+                        {d.vehicleType === "two_wheeler" ? "Two Wheeler" : d.vehicleType === "four_wheeler" ? "Four Wheeler" : "Six Wheeler"}
+                      </span>
+                    </>
+                  )}
+                  {d.logisticCategory && (
+                    <>
+                      <br />
+                      <strong>Category:</strong>{" "}
+                      <span className="capitalize text-purple-600 font-medium">
+                        {d.logisticCategory === "home_shifting" ? "Home Shifting" : d.logisticCategory === "goods_shifting" ? "Goods Shifting" : d.logisticCategory === "materials_shifting" ? "Materials Shifting" : "Other"}
+                      </span>
+                    </>
+                  )}
+                  {d.quantity && (
+                    <>
+                      <br />
+                      <strong>Quantity:</strong> {d.quantity}
+                    </>
+                  )}
+                  {d.distanceKm && (
+                    <>
+                      <br />
+                      <strong>Distance:</strong> {parseFloat(d.distanceKm).toFixed(1)} km
+                    </>
+                  )}
+                  {d.unitPrice && (
+                    <>
+                      <br />
+                      <strong>Unit Price:</strong> ₹{parseFloat(d.unitPrice).toFixed(2)}
+                    </>
+                  )}
+                  {d.totalPrice && (
+                    <>
+                      <br />
+                      <strong>Total Price:</strong> ₹{parseFloat(d.totalPrice).toFixed(2)}
+                    </>
+                  )}
                 </p>
                 <div className="mt-3">
                   <button
@@ -343,7 +665,7 @@ export default function CustomerDashboard() {
               </div>
             )}
             {/* MapTracker component shows driver moving in real-time */}
-            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} />
+            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} pickup={pickup} />
           </div>
         )}
       </div>

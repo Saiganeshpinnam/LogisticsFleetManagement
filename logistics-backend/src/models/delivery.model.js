@@ -25,7 +25,15 @@ module.exports = (sequelize) => {
     productUrl: { type: DataTypes.TEXT },
     productTitle: { type: DataTypes.STRING },
     productImage: { type: DataTypes.TEXT },
-    productPrice: { type: DataTypes.STRING }
+    productPrice: { type: DataTypes.STRING },
+
+    // Logistics and pricing
+    logisticType: { type: DataTypes.ENUM('standard', 'express', 'economy'), defaultValue: 'standard' },
+    vehicleType: { type: DataTypes.ENUM('two_wheeler', 'four_wheeler', 'six_wheeler'), defaultValue: 'two_wheeler' },
+    logisticCategory: { type: DataTypes.ENUM('home_shifting', 'goods_shifting', 'materials_shifting', 'other'), defaultValue: 'goods_shifting' },
+    distanceKm: { type: DataTypes.DECIMAL(10, 2), defaultValue: 1.0 },
+    unitPrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    totalPrice: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }
   }, {
     tableName: 'deliveries'
   });

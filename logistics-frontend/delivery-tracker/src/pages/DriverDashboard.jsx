@@ -13,6 +13,7 @@ export default function DriverDashboard() {
   const [driverLocation, setDriverLocation] = useState({ lat: 0, lng: 0 });
   const [destination, setDestination] = useState(null);
   const [etaHours, setEtaHours] = useState(null);
+  const [pickup, setPickup] = useState(null); // [lat, lng]
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -77,6 +78,28 @@ export default function DriverDashboard() {
   useEffect(() => {
     if (!selectedDelivery) return;
     const d = deliveries.find(x => x.id === selectedDelivery);
+    if (!d?.pickupAddress) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.pickupAddress)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          setPickup([lat, lon]);
+        }
+      } catch (e) {
+        setPickup(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedDelivery, deliveries]);
+
+  useEffect(() => {
+    if (!selectedDelivery) return;
+    const d = deliveries.find(x => x.id === selectedDelivery);
     if (!d?.dropAddress) return;
     let cancelled = false;
     (async () => {
@@ -130,8 +153,16 @@ export default function DriverDashboard() {
       return;
     }
 
+    // Get the delivery to find pickup coordinates
+    const delivery = deliveries.find(d => d.id === deliveryId);
     let lat = 17.385; // Default starting location (Hyderabad)
     let lng = 78.4867;
+
+    // Use pickup coordinates if available
+    if (delivery && delivery.pickupLatitude && delivery.pickupLongitude) {
+      lat = parseFloat(delivery.pickupLatitude);
+      lng = parseFloat(delivery.pickupLongitude);
+    }
 
     const interval = setInterval(() => {
       lat += (Math.random() - 0.5) * 0.001;
@@ -248,6 +279,48 @@ export default function DriverDashboard() {
                   >
                     {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : "Pending"}
                   </span>
+                  {d.vehicleType && (
+                    <>
+                      <br />
+                      <strong>Vehicle:</strong>{" "}
+                      <span className="capitalize text-indigo-600 font-medium">
+                        {d.vehicleType === "two_wheeler" ? "Two Wheeler" : d.vehicleType === "four_wheeler" ? "Four Wheeler" : "Six Wheeler"}
+                      </span>
+                    </>
+                  )}
+                  {d.logisticCategory && (
+                    <>
+                      <br />
+                      <strong>Category:</strong>{" "}
+                      <span className="capitalize text-purple-600 font-medium">
+                        {d.logisticCategory === "home_shifting" ? "Home Shifting" : d.logisticCategory === "goods_shifting" ? "Goods Shifting" : d.logisticCategory === "materials_shifting" ? "Materials Shifting" : "Other"}
+                      </span>
+                    </>
+                  )}
+                  {d.quantity && (
+                    <>
+                      <br />
+                      <strong>Quantity:</strong> {d.quantity}
+                    </>
+                  )}
+                  {d.distanceKm && (
+                    <>
+                      <br />
+                      <strong>Distance:</strong> {parseFloat(d.distanceKm).toFixed(1)} km
+                    </>
+                  )}
+                  {d.unitPrice && (
+                    <>
+                      <br />
+                      <strong>Unit Price:</strong> ₹{parseFloat(d.unitPrice).toFixed(2)}
+                    </>
+                  )}
+                  {d.totalPrice && (
+                    <>
+                      <br />
+                      <strong>Total Price:</strong> ₹{parseFloat(d.totalPrice).toFixed(2)}
+                    </>
+                  )}
                 </p>
 
                 <div className="flex gap-3 mt-4 flex-wrap">
@@ -312,7 +385,7 @@ export default function DriverDashboard() {
                 <strong>Estimated time to arrive:</strong> {etaHours.toFixed(2)} hours
               </div>
             )}
-            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} />
+            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} pickup={pickup} />
           </div>
         </div>
       )}
