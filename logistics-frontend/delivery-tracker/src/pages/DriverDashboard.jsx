@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "../services/api";
-import { getUserId } from "../services/api";
+import { getUserId, getUser } from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
@@ -13,8 +13,15 @@ export default function DriverDashboard() {
   const [driverLocation, setDriverLocation] = useState({ lat: 0, lng: 0 });
   const [destination, setDestination] = useState(null);
   const [etaHours, setEtaHours] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // Load user profile information
+    const userInfo = getUser();
+    if (userInfo) {
+      setUser(userInfo);
+    }
+
     loadDeliveries();
 
     // Cleanup all intervals on unmount
@@ -175,6 +182,33 @@ export default function DriverDashboard() {
 
       <div className="p-6">
         <h2 className="text-3xl font-bold text-blue-700 mb-6">Driver Dashboard</h2>
+
+        {/* User Profile Section */}
+        {user && (
+          <div className="mb-6 bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <svg className="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              Driver Profile
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-600">Name</p>
+                <p className="text-lg font-semibold text-gray-800">{user.name}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-600">Email</p>
+                <p className="text-lg font-semibold text-gray-800">{user.email}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-600">Role</p>
+                <p className="text-lg font-semibold text-gray-800 capitalize">{user.role}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 p-3 rounded bg-red-50 text-red-700 border border-red-200">{error}</div>
         )}

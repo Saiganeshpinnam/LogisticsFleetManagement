@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// ✅ Adjust to your backend port (check app.js — usually 4000 or 5000)
+// ✅ Adjust to your backend port (check server.js — now 4001)
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "https://logisticsfleetmanagement.onrender.com/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4001/api",
 });
 
 // Automatically add token if it exists
@@ -97,6 +97,24 @@ export function getUserId() {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.id;
+  } catch (err) {
+    console.error("Invalid token", err);
+    return null;
+  }
+}
+
+// Decode full user information from JWT
+export function getUser() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      id: payload.id,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role
+    };
   } catch (err) {
     console.error("Invalid token", err);
     return null;
