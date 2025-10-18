@@ -1,8 +1,46 @@
 import axios from "axios";
 
-// ✅ Backend is running on port 4000
+// ✅ Smart environment detection for API URL
+const getApiUrl = () => {
+  // Check for explicit environment variable first
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  // Detect if we're running locally or deployed
+  const isLocalhost = window.location.hostname === 'localhost' ||
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.startsWith('192.168.') ||
+                     window.location.hostname.startsWith('10.');
+
+  if (isLocalhost) {
+    return "http://localhost:4000/api";
+  } else {
+    // Deployed environment - use the deployed backend
+    return "https://logisticsfleetmanagement.onrender.com/api";
+  }
+};
+
+// ✅ Smart Socket URL detection
+const getSocketUrl = () => {
+  if (process.env.REACT_APP_SOCKET_URL) {
+    return process.env.REACT_APP_SOCKET_URL;
+  }
+
+  const isLocalhost = window.location.hostname === 'localhost' ||
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.startsWith('192.168.') ||
+                     window.location.hostname.startsWith('10.');
+
+  if (isLocalhost) {
+    return "http://localhost:4000";
+  } else {
+    return "https://logisticsfleetmanagement.onrender.com";
+  }
+};
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4000/api",
+  baseURL: getApiUrl(),
 });
 
 // Automatically add token if it exists
@@ -32,6 +70,9 @@ api.interceptors.response.use(
 export default api;
 
 // -------------------- Helper functions --------------------
+
+// Export socket URL for socket service
+export { getSocketUrl };
 
 // Save token
 export function setToken(token) {

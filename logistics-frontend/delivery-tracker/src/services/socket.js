@@ -1,7 +1,8 @@
 // src/services/socket.js
 import { io } from "socket.io-client";
+import { getSocketUrl } from "./api";
 
-const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:4000", {
+const socket = io(getSocketUrl(), {
   transports: ["websocket"],
 });
 

@@ -22,6 +22,7 @@ app.use(cors({
     "http://127.0.0.1:3000",
     "http://127.0.0.1:4000",
     "https://logistics-fleet-management-ten.vercel.app",
+    "https://logisticsfleetmanagement.onrender.com",
     process.env.FRONTEND_URL
   ].filter(Boolean), // Remove any undefined values
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
