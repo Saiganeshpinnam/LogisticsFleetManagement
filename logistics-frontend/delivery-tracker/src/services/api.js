@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// ✅ Adjust to your backend port (check server.js — now 4001)
+// ✅ Backend is running on port 4000
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4001/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4000/api",
 });
 
 // Automatically add token if it exists

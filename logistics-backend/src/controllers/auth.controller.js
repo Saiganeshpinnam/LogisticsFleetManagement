@@ -17,9 +17,12 @@ exports.register = async (req, res) => {
   }
 
   try {
+    console.log('Registration attempt:', { name, email, role });
+    
     // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
+      console.log('User already exists:', email);
       return res.status(400).json({ message: 'Email already exists' });
     }
 
@@ -30,6 +33,8 @@ exports.register = async (req, res) => {
       password, // hashing handled by model hooks
       role
     });
+
+    console.log('User registered successfully:', { id: user.id, email: user.email, role: user.role });
 
     // Return user info (without password)
     return res.status(201).json({
@@ -42,8 +47,13 @@ exports.register = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Register error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('Register error details:', err);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    return res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
   }
 };
 

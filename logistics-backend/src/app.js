@@ -18,10 +18,13 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
+    "http://localhost:4000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4000",
     "https://logistics-fleet-management-ten.vercel.app",
     process.env.FRONTEND_URL
   ].filter(Boolean), // Remove any undefined values
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
 app.use(express.json());
