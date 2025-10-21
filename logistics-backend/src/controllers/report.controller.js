@@ -1,7 +1,25 @@
-const { Delivery, User, Vehicle, sequelize } = require('../models');
-const { QueryTypes } = require('sequelize');
+// Summary reports for admin dashboard
+exports.summary = async (req, res) => {
+  try {
+    const [pendingCount, assignedCount, onRouteCount, deliveredCount] = await Promise.all([
+      Delivery.count({ where: { status: 'pending' } }),
+      Delivery.count({ where: { status: 'assigned' } }),
+      Delivery.count({ where: { status: 'on_route' } }),
+      Delivery.count({ where: { status: 'delivered' } }),
+    ]);
 
-// Avg delivery time per driver (delivered deliveries)
+    return res.json({
+      pending: pendingCount,
+      assigned: assignedCount,
+      on_route: onRouteCount,
+      delivered: deliveredCount,
+      total: pendingCount + assignedCount + onRouteCount + deliveredCount
+    });
+  } catch (err) {
+    console.error('report.summary err', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
 exports.avgDeliveryTimePerDriver = async (req, res) => {
   try {
     // Using raw query for clarity; computes avg(seconds) between createdAt and updatedAt when status='delivered'

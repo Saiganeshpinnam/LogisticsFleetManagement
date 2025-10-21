@@ -44,7 +44,7 @@ exports.createDelivery = async (req, res) => {
       scheduledStart,
       scheduledEnd,
       customerId,
-      status: 'pending',
+      status: driverId && vehicleId ? 'assigned' : 'pending',
     });
 
     // Notify the assigned driver to refresh their deliveries
@@ -133,6 +133,7 @@ exports.assignDelivery = async (req, res) => {
 
     delivery.driverId = driverId;
     delivery.vehicleId = vehicleId;
+    delivery.status = 'assigned'; // Set status to assigned when delivery is assigned
     if (customerId) delivery.customerId = customerId;
     await delivery.save();
 
@@ -157,7 +158,7 @@ exports.updateStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!['pending', 'on_route', 'delivered'].includes(status)) {
+  if (!['pending', 'assigned', 'on_route', 'delivered'].includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
