@@ -3,7 +3,7 @@ const http = require('http');
 const app = require('./app');
 const { initSocket } = require('./utils/socketManager');
 
-const PORT = process.env.PORT || 4000;
+const PORT = 4001; // Use port 4001 explicitly
 
 const server = http.createServer(app);
 

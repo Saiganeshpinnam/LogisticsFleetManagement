@@ -103,6 +103,17 @@ exports.assignDelivery = async (req, res) => {
     const delivery = await Delivery.findByPk(id);
     if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
 
+    // Check if delivery is already assigned
+    if (delivery.driverId && delivery.vehicleId) {
+      return res.status(400).json({ message: 'Delivery is already assigned to a driver and vehicle' });
+    }
+
+    // Check for scheduling conflicts for the driver
+    const conflict = await hasConflict({ driverId, vehicleId, scheduledStart: delivery.scheduledStart, scheduledEnd: delivery.scheduledEnd });
+    if (conflict) {
+      return res.status(400).json({ message: 'Scheduling conflict for driver or vehicle' });
+    }
+
     // Validate FKs
     const lookups = [
       User.findByPk(driverId),

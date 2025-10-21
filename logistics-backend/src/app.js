@@ -18,9 +18,9 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "http://localhost:4000",
+    "http://localhost:4001",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:4000",
+    "http://127.0.0.1:4001",
     "https://logistics-fleet-management-ten.vercel.app",
     "https://logisticsfleetmanagement.onrender.com",
     process.env.FRONTEND_URL
@@ -63,7 +63,7 @@ app.get('/api/health', async (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    port: process.env.PORT || 4000,
+    port: process.env.PORT || 4001,
     database: {
       connected: false,
       dialect: null,
