@@ -15,7 +15,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const res = await api.post("auth/login", { email, password });
 
       // Save JWT token
       setToken(res.data.token);
@@ -54,49 +54,47 @@ export default function Login() {
     }
   };
 
+  // Tabs configuration
   const tabs = [
     {
       id: "admin",
       label: "Admin",
       icon: "👑",
-      color: "blue",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
-      textColor: "text-blue-800",
-      textColorSecondary: "text-blue-700",
-      buttonColor: "bg-blue-600",
-      buttonHoverColor: "hover:bg-blue-700",
-      ringColor: "focus:ring-blue-500",
-      description: "Manage deliveries, assign drivers, view reports"
+      description: "Manage the entire logistics fleet, assign deliveries, and view reports.",
+      bgColor: "bg-yellow-50",
+      textColor: "text-yellow-800",
+      textColorSecondary: "text-yellow-600",
+      borderColor: "border-yellow-200",
+      ringColor: "focus:ring-yellow-500",
+      buttonColor: "bg-yellow-600",
+      buttonHoverColor: "hover:bg-yellow-700",
     },
     {
       id: "driver",
       label: "Driver",
       icon: "🚛",
-      color: "green",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
-      textColor: "text-green-800",
-      textColorSecondary: "text-green-700",
-      buttonColor: "bg-green-600",
-      buttonHoverColor: "hover:bg-green-700",
-      ringColor: "focus:ring-green-500",
-      description: "View assigned deliveries and update status"
+      description: "View assigned deliveries, update delivery status, and manage routes.",
+      bgColor: "bg-blue-50",
+      textColor: "text-blue-800",
+      textColorSecondary: "text-blue-600",
+      borderColor: "border-blue-200",
+      ringColor: "focus:ring-blue-500",
+      buttonColor: "bg-blue-600",
+      buttonHoverColor: "hover:bg-blue-700",
     },
     {
       id: "customer",
       label: "Customer",
       icon: "📦",
-      color: "purple",
-      bgColor: "bg-purple-50",
-      borderColor: "border-purple-200",
-      textColor: "text-purple-800",
-      textColorSecondary: "text-purple-700",
-      buttonColor: "bg-purple-600",
-      buttonHoverColor: "hover:bg-purple-700",
-      ringColor: "focus:ring-purple-500",
-      description: "Request deliveries and track your orders"
-    }
+      description: "Request new deliveries, track existing orders, and manage your shipments.",
+      bgColor: "bg-green-50",
+      textColor: "text-green-800",
+      textColorSecondary: "text-green-600",
+      borderColor: "border-green-200",
+      ringColor: "focus:ring-green-500",
+      buttonColor: "bg-green-600",
+      buttonHoverColor: "hover:bg-green-700",
+    },
   ];
 
   return (

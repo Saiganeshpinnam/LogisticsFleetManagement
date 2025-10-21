@@ -3,6 +3,11 @@ const jwt = require('../config/jwt'); // Use your helper
 const bcrypt = require('bcrypt');
 const { getIO } = require('../utils/socketManager');
 
+// Check if User model is available
+if (!User) {
+  console.error('❌ User model not available - authentication will not work');
+}
+
 // Allowed roles
 const ROLES = ['Admin', 'Driver', 'Customer'];
 
@@ -15,6 +20,12 @@ exports.register = async (req, res) => {
 
   if (!ROLES.includes(role)) {
     return res.status(400).json({ message: `Role must be one of: ${ROLES.join(', ')}` });
+  }
+
+  // Check if User model is available
+  if (!User) {
+    console.error('❌ User model not available during registration');
+    return res.status(500).json({ message: 'Server configuration error' });
   }
 
   try {
@@ -75,6 +86,12 @@ exports.login = async (req, res) => {
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  // Check if User model is available
+  if (!User) {
+    console.error('❌ User model not available during login');
+    return res.status(500).json({ message: 'Server configuration error' });
   }
 
   try {

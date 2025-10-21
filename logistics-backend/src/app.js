@@ -147,12 +147,12 @@ sequelize.sync({ alter: true })
   .then(async () => {
     console.log('Database synced ✅');
     console.log('Database dialect:', sequelize.getDialect());
-    
+
     // Create default admin user if none exists
     try {
       const { User } = require('./models');
       const adminExists = await User.findOne({ where: { role: 'Admin' } });
-      
+
       if (!adminExists) {
         const adminUser = await User.create({
           name: 'Admin User',
@@ -167,18 +167,21 @@ sequelize.sync({ alter: true })
         console.log('Admin user already exists ✅');
         console.log('Existing admin ID:', adminExists.id);
       }
-      
+
       // Log total user count
       const userCount = await User.count();
       console.log(`Total users in database: ${userCount}`);
-      
+
     } catch (err) {
       console.error('Error creating default admin:', err);
+      console.error('This might be due to database connection issues, but the app will continue to work');
     }
   })
   .catch(err => {
-    console.error('DB sync error ❌:', err);
+    console.error('DB sync error ❌:', err.message);
     console.error('Error details:', err.message);
+    console.log('⚠️ Database sync failed, but the app will continue to work');
+    console.log('💡 This might be due to database connection issues - check your DATABASE_URL or use SQLite fallback');
   });
 
 module.exports = app;
