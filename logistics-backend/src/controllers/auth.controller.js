@@ -91,15 +91,31 @@ exports.login = async (req, res) => {
   // Check if User model is available
   if (!User) {
     console.error('❌ User model not available during login');
-    return res.status(500).json({ message: 'Server configuration error' });
+    return res.status(500).json({ 
+      message: 'Server configuration error',
+      error: 'Database model not initialized'
+    });
   }
 
   try {
     console.log('Login attempt for email:', email);
     
+    // Test database connection first
+    const { sequelize } = require('../models');
+    await sequelize.authenticate();
+    console.log('✅ Database connection verified for login');
+    
     // Debug: Check total user count
     const totalUsers = await User.count();
     console.log('Total users in database:', totalUsers);
+    
+    if (totalUsers === 0) {
+      console.error('❌ No users found in database - database might be empty');
+      return res.status(500).json({ 
+        message: 'Server error',
+        error: 'Database appears to be empty'
+      });
+    }
     
     // Debug: List all users (in development only)
     if (process.env.NODE_ENV !== 'production') {
@@ -110,7 +126,10 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ where: { email } });
     if (!user) {
       console.log('User not found for email:', email);
-      console.log('Available emails:', await User.findAll({ attributes: ['email'] }).then(users => users.map(u => u.email)));
+      if (process.env.NODE_ENV !== 'production') {
+        const availableEmails = await User.findAll({ attributes: ['email'] });
+        console.log('Available emails:', availableEmails.map(u => u.email));
+      }
       return res.status(404).json({ message: 'User not found' });
     }
 
@@ -139,10 +158,33 @@ exports.login = async (req, res) => {
       expiresIn: '30d' // Let frontend know token expiration
     });
   } catch (err) {
-    console.error('Login error details:', err);
-    return res.status(500).json({ 
+    console.error('❌ Login error details:', err);
+    console.error('Error name:', err.name);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    
+    // Specific error handling for common database issues
+    let errorMessage = 'Internal server error';
+    let statusCode = 500;
+    
+    if (err.name === 'ConnectionError' || err.name === 'ConnectionRefusedError') {
+      errorMessage = 'Database connection failed';
+      console.error('❌ Database connection error - check DATABASE_URL');
+    } else if (err.name === 'DatabaseError') {
+      errorMessage = 'Database query failed';
+      console.error('❌ Database query error - check database schema');
+    } else if (err.name === 'SequelizeConnectionError') {
+      errorMessage = 'Database connection error';
+      console.error('❌ Sequelize connection error - check database configuration');
+    }
+    
+    return res.status(statusCode).json({ 
       message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? err.message : errorMessage,
+      details: process.env.NODE_ENV === 'development' ? {
+        name: err.name,
+        stack: err.stack
+      } : undefined
     });
   }
 };

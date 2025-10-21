@@ -57,6 +57,52 @@ app.use('/api/locations', locationRoutes);
 // -------------------- Healthcheck --------------------
 app.get('/api', (req, res) => res.json({ message: 'Backend server is running ✅' }));
 
+// Health check endpoint for deployment monitoring
+app.get('/api/health', async (req, res) => {
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 4000,
+    database: {
+      connected: false,
+      dialect: null,
+      userCount: 0,
+      hasUrl: !!process.env.DATABASE_URL
+    },
+    config: {
+      dbHost: process.env.DB_HOST || 'localhost',
+      dbPort: process.env.DB_PORT || 5432,
+      dbName: process.env.DB_NAME || 'logistics_db',
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      frontendUrl: process.env.FRONTEND_URL || 'not set'
+    }
+  };
+
+  try {
+    const { sequelize, User } = require('./models');
+    
+    // Test database connection
+    await sequelize.authenticate();
+    health.database.connected = true;
+    health.database.dialect = sequelize.getDialect();
+    
+    // Count users
+    if (User) {
+      health.database.userCount = await User.count();
+    }
+    
+    res.json(health);
+  } catch (error) {
+    health.status = 'error';
+    health.database.error = error.message;
+    health.database.errorType = error.name;
+    
+    console.error('❌ Health check failed:', error);
+    res.status(500).json(health);
+  }
+});
+
 // Database connection test
 app.get('/api/db-test', async (req, res) => {
   try {

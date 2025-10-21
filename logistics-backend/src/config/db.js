@@ -57,17 +57,27 @@ if (FORCE_SQLITE) {
     // Use individual environment variables for local development
     const dbConfig = {
       host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432, // Standard PostgreSQL port
+      port: parseInt(process.env.DB_PORT) || 5432, // Standard PostgreSQL port
       database: process.env.DB_NAME || 'logistics_db',
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASS || 'postgres',
       dialect: 'postgres',
-      logging: false,
+      logging: process.env.NODE_ENV === 'development' ? console.log : false,
       pool: {
-        max: 5,
+        max: 10,
         min: 0,
-        acquire: 30000,
+        acquire: 60000, // Increased timeout for cloud databases
         idle: 10000
+      },
+      dialectOptions: {
+        connectTimeout: 60000, // 60 seconds
+        ssl: process.env.NODE_ENV === 'production' ? {
+          require: true,
+          rejectUnauthorized: false // For Render.com PostgreSQL
+        } : false
+      },
+      retry: {
+        max: 3 // Retry failed connections up to 3 times
       }
     };
 

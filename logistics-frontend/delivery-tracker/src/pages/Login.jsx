@@ -33,14 +33,39 @@ export default function Login() {
 
       // More detailed error handling
       let errorMessage = "Login failed ❌";
+      let helpMessage = "";
 
       if (err.response) {
         // Server responded with error status
-        errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
-        console.error("Server error details:", err.response.data);
+        const status = err.response.status;
+        const data = err.response.data;
+        
+        console.error("Server error details:", data);
+        
+        if (status === 500) {
+          errorMessage = "Server Error: The backend service is experiencing issues.";
+          helpMessage = "This is usually a database connection problem. Please try again in a few minutes.";
+          
+          // Log specific 500 error details for debugging
+          if (data?.error) {
+            console.error("500 Error Details:", data.error);
+            if (data.error.includes('Database') || data.error.includes('connection')) {
+              helpMessage = "Database connection failed. The backend service may be starting up or experiencing connectivity issues.";
+            }
+          }
+        } else if (status === 404) {
+          errorMessage = "User not found. Please check your email address.";
+        } else if (status === 401) {
+          errorMessage = "Invalid email or password. Please try again.";
+        } else if (status === 400) {
+          errorMessage = data?.message || "Invalid login request.";
+        } else {
+          errorMessage = data?.message || `Server error: ${status}`;
+        }
       } else if (err.request) {
         // Request was made but no response received
-        errorMessage = "Cannot connect to server. Please check your internet connection.";
+        errorMessage = "Cannot connect to server.";
+        helpMessage = "Please check your internet connection or try again later.";
         console.error("Network error:", err.request);
       } else {
         // Something else happened
@@ -48,7 +73,9 @@ export default function Login() {
         console.error("Unexpected error:", err.message);
       }
 
-      alert(errorMessage);
+      // Show error with help message
+      const fullMessage = helpMessage ? `${errorMessage}\n\n${helpMessage}` : errorMessage;
+      alert(fullMessage);
     } finally {
       setIsLoading(false);
     }
