@@ -127,7 +127,7 @@ export default function MapTracker({ deliveryId, driverLocation, destination, pi
       const startPosition = (pickup && Array.isArray(pickup) && pickup.length === 2) ? pickup : position;
       fetchRoute(startPosition, destination);
     }
-  }, [destination, pickup, position]);
+  }, [destination, pickup, position, fetchRoute]);
 
   return (
     <div className="space-y-4">

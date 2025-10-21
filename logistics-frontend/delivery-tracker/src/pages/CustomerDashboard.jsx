@@ -1,55 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import axios from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
 import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomplete";
 import { getUserId, getUser } from "../services/api";
-
-// Pricing configuration (matches backend)
-const PRICING_CONFIG = {
-  two_wheeler: {
-    home_shifting: 15,    // ₹15 per km
-    goods_shifting: 12,   // ₹12 per km
-    materials_shifting: 10, // ₹10 per km
-    other: 13            // ₹13 per km
-  },
-  four_wheeler: {
-    home_shifting: 45,    // ₹45 per km
-    goods_shifting: 35,   // ₹35 per km
-    materials_shifting: 30, // ₹30 per km
-    other: 38            // ₹38 per km
-  },
-  six_wheeler: {
-    home_shifting: 90,    // ₹90 per km
-    goods_shifting: 75,   // ₹75 per km
-    materials_shifting: 65, // ₹65 per km
-    other: 80            // ₹80 per km
-  }
-};
-
-// Geocode address using Nominatim (matches backend)
-const geocodeAddress = async (address) => {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-    const response = await fetch(url, {
-      headers: { 'Accept-Language': 'en' }
-    });
-    const data = await response.json();
-
-    if (Array.isArray(data) && data.length > 0) {
-      return {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
-        formattedAddress: data[0].display_name
-      };
-    }
-    return null;
-  } catch (error) {
-    console.warn('Geocoding failed for:', address, error);
-    return null;
-  }
-};
 
 export default function CustomerDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -61,10 +16,10 @@ export default function CustomerDashboard() {
   const [pickup, setPickup] = useState(null); // [lat, lng]
   const [requestForm, setRequestForm] = useState({ pickupAddress: "", dropAddress: "", productUrl: "", logisticType: "standard", vehicleType: "two_wheeler", logisticCategory: "goods_shifting" });
   const [user, setUser] = useState(null);
-  const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [estimatedDistance, setEstimatedDistance] = useState(1.0);
-  const [coordinates, setCoordinates] = useState({ pickup: null, drop: null });
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+  const [coordinates, setCoordinates] = useState({ pickup: null, drop: null });
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
 
   // Pricing configuration (matches backend)
   const PRICING_CONFIG = {
@@ -150,14 +105,13 @@ export default function CustomerDashboard() {
   useEffect(() => {
     const price = calculatePrice(requestForm.vehicleType, requestForm.logisticCategory, estimatedDistance);
     setCalculatedPrice(price);
-  }, [requestForm.vehicleType, requestForm.logisticCategory, estimatedDistance]);
+  }, [requestForm.vehicleType, requestForm.logisticCategory, estimatedDistance, calculatePrice]);
 
   // Geocode addresses and calculate distance when they change
   useEffect(() => {
     const geocodeAndCalculateDistance = async () => {
       if (!requestForm.pickupAddress || !requestForm.dropAddress) {
         setEstimatedDistance(1.0);
-        setCoordinates({ pickup: null, drop: null });
         return;
       }
 
