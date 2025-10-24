@@ -273,6 +273,7 @@ export default function AdminDashboard() {
                   </td>
                   <td className="whitespace-nowrap px-2 py-2">
                     <span className={`inline-block px-3 py-1 rounded text-sm font-medium ${
+                      d.status === 'unassigned' ? 'bg-gray-100 text-gray-700' :
                       d.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                       d.status === 'assigned' ? 'bg-blue-100 text-blue-700' :
                       d.status === 'on_route' ? 'bg-orange-100 text-orange-700' :
@@ -313,15 +314,15 @@ export default function AdminDashboard() {
                     </select>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
-                    {d.status === 'assigned' || d.status === 'on_route' || d.status === 'delivered' ? (
+                    {d.status === 'pending' || d.status === 'assigned' || d.status === 'on_route' || d.status === 'delivered' ? (
                       <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded text-sm animate-pulse">
-                        {d.status === 'assigned' ? 'Assigned' : d.status === 'on_route' ? 'On Route' : 'Delivered'}
+                        {d.status === 'pending' ? 'Assigned' : d.status === 'assigned' ? 'Assigned' : d.status === 'on_route' ? 'On Route' : 'Delivered'}
                       </span>
                     ) : (
                       <button
                         onClick={() => assignDelivery(d.id)}
                         className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded disabled:opacity-50 transition-transform duration-200 hover:bg-blue-700 active:scale-95"
-                        disabled={d.status !== 'pending' || !(assignSelections[d.id]?.driverId && assignSelections[d.id]?.vehicleId)}
+                        disabled={d.status !== 'unassigned' || !(assignSelections[d.id]?.driverId && assignSelections[d.id]?.vehicleId)}
                       >
                         Assign
                       </button>

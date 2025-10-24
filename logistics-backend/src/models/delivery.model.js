@@ -5,7 +5,7 @@ module.exports = (sequelize) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     pickupAddress: { type: DataTypes.STRING, allowNull: false },
     dropAddress: { type: DataTypes.STRING, allowNull: false },
-    status: { type: DataTypes.ENUM('pending','assigned','on_route','delivered'), defaultValue: 'pending' },
+    status: { type: DataTypes.ENUM('unassigned','pending','assigned','on_route','delivered'), defaultValue: 'unassigned' },
     scheduledStart: { type: DataTypes.DATE },
     scheduledEnd: { type: DataTypes.DATE },
     

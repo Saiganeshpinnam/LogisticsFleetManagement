@@ -1,6 +1,15 @@
 /**
  * Pricing utility for delivery services
- * Calculates unit price based on vehicle type, logistic category, and distance (km)
+ * THIS IS THE SINGLE SOURCE OF TRUTH FOR ALL PRICING CALCULATIONS
+ *
+ * All frontend dashboards (Customer, Admin, Driver) must use identical
+ * pricing configuration and calculation logic to ensure consistency.
+ *
+ * Distance and price values stored in database are calculated using these functions.
+ * All dashboard displays should use the stored database values, not recalculate.
+ *
+ * IMPORTANT: Any changes to pricing must be synchronized with:
+ * - Frontend: logistics-frontend/delivery-tracker/src/utils/pricing.js
  */
 
 // Base pricing configuration per km

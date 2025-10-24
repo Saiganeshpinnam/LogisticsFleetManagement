@@ -44,7 +44,7 @@ exports.createDelivery = async (req, res) => {
       scheduledStart,
       scheduledEnd,
       customerId,
-      status: driverId && vehicleId ? 'assigned' : 'pending',
+      status: 'unassigned',
     });
 
     // Notify the assigned driver to refresh their deliveries
@@ -70,8 +70,8 @@ exports.cancelMyRequest = async (req, res) => {
     if (delivery.customerId !== req.user.id) {
       return res.status(403).json({ message: 'Forbidden: Cannot cancel this delivery' });
     }
-    if (delivery.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending requests can be cancelled' });
+    if (delivery.status !== 'pending' && delivery.status !== 'unassigned') {
+      return res.status(400).json({ message: 'Only pending or unassigned requests can be cancelled' });
     }
 
     // Remove tracking entries (if any) and then delete the delivery
@@ -133,7 +133,7 @@ exports.assignDelivery = async (req, res) => {
 
     delivery.driverId = driverId;
     delivery.vehicleId = vehicleId;
-    delivery.status = 'assigned'; // Set status to assigned when delivery is assigned
+    delivery.status = 'pending'; // Set status to pending when delivery is assigned
     if (customerId) delivery.customerId = customerId;
     await delivery.save();
 
@@ -158,7 +158,7 @@ exports.updateStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!['pending', 'assigned', 'on_route', 'delivered'].includes(status)) {
+  if (!['unassigned', 'pending', 'assigned', 'on_route', 'delivered'].includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
@@ -236,32 +236,71 @@ exports.getDeliveries = async (req, res) => {
 exports.createRequest = async (req, res) => {
   try {
     const customerId = req.user.id;
-    const { pickupAddress, dropAddress, productUrl, logisticType = 'standard', vehicleType = 'two_wheeler', logisticCategory = 'goods_shifting' } = req.body;
+    const { 
+      pickupAddress, 
+      dropAddress, 
+      productUrl, 
+      logisticType = 'standard', 
+      vehicleType = 'two_wheeler', 
+      logisticCategory = 'goods_shifting',
+      // Accept frontend-calculated values for consistency
+      distanceKm: frontendDistanceKm,
+      pickupLatitude: frontendPickupLat,
+      pickupLongitude: frontendPickupLng,
+      pickupFormattedAddress: frontendPickupFormatted,
+      dropLatitude: frontendDropLat,
+      dropLongitude: frontendDropLng,
+      dropFormattedAddress: frontendDropFormatted
+    } = req.body;
 
     if (!pickupAddress || !dropAddress) {
       return res.status(400).json({ message: 'pickupAddress and dropAddress are required' });
     }
 
-    // Geocode addresses in parallel
-    console.log('Geocoding addresses...');
-    const [pickupGeocode, dropGeocode] = await Promise.all([
-      geocodeAddress(pickupAddress).catch(() => geocodeAddressFallback(pickupAddress)),
-      geocodeAddress(dropAddress).catch(() => geocodeAddressFallback(dropAddress))
-    ]);
+    // Use frontend-provided coordinates if available, otherwise geocode
+    let pickupGeocode, dropGeocode, distanceKm;
+    
+    if (frontendPickupLat && frontendPickupLng && frontendDropLat && frontendDropLng && frontendDistanceKm) {
+      // Use frontend-calculated values for perfect consistency
+      console.log('Using frontend-calculated coordinates and distance');
+      pickupGeocode = {
+        latitude: frontendPickupLat,
+        longitude: frontendPickupLng,
+        formattedAddress: frontendPickupFormatted || pickupAddress,
+        placeId: null
+      };
+      dropGeocode = {
+        latitude: frontendDropLat,
+        longitude: frontendDropLng,
+        formattedAddress: frontendDropFormatted || dropAddress,
+        placeId: null
+      };
+      distanceKm = frontendDistanceKm;
+    } else {
+      // Fallback to backend geocoding
+      console.log('Geocoding addresses on backend...');
+      const [pickupResult, dropResult] = await Promise.all([
+        geocodeAddress(pickupAddress).catch(() => geocodeAddressFallback(pickupAddress)),
+        geocodeAddress(dropAddress).catch(() => geocodeAddressFallback(dropAddress))
+      ]);
+      
+      pickupGeocode = pickupResult;
+      dropGeocode = dropResult;
 
-    console.log('Pickup geocode:', pickupGeocode);
-    console.log('Drop geocode:', dropGeocode);
+      console.log('Pickup geocode:', pickupGeocode);
+      console.log('Drop geocode:', dropGeocode);
 
-    // Calculate distance between pickup and drop coordinates
-    let distanceKm = 1.0; // Default minimum distance
-    if (pickupGeocode?.latitude && pickupGeocode?.longitude && dropGeocode?.latitude && dropGeocode?.longitude) {
-      distanceKm = calculateDistance(
-        pickupGeocode.latitude,
-        pickupGeocode.longitude,
-        dropGeocode.latitude,
-        dropGeocode.longitude
-      );
-      console.log('Calculated distance:', distanceKm, 'km');
+      // Calculate distance between pickup and drop coordinates
+      distanceKm = 1.0; // Default minimum distance
+      if (pickupGeocode?.latitude && pickupGeocode?.longitude && dropGeocode?.latitude && dropGeocode?.longitude) {
+        distanceKm = calculateDistance(
+          pickupGeocode.latitude,
+          pickupGeocode.longitude,
+          dropGeocode.latitude,
+          dropGeocode.longitude
+        );
+        console.log('Calculated distance:', distanceKm, 'km');
+      }
     }
 
     // Calculate pricing based on vehicle type, logistic category, and distance
@@ -294,7 +333,7 @@ exports.createRequest = async (req, res) => {
       pickupAddress,
       dropAddress,
       customerId,
-      status: 'pending',
+      status: 'unassigned',
       productUrl: productUrl || null,
       productTitle: productTitle || null,
       productImage: productImage || null,

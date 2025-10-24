@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
 import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomplete";
 import { getUserId, getUser } from "../services/api";
+import { calculateDistance, PRICING_CONFIG } from "../utils/pricing";
 
 export default function CustomerDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -18,75 +19,30 @@ export default function CustomerDashboard() {
   const [user, setUser] = useState(null);
   const [estimatedDistance, setEstimatedDistance] = useState(1.0);
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
-  const [coordinates, setCoordinates] = useState({ pickup: null, drop: null });
   const [calculatedPrice, setCalculatedPrice] = useState(0);
-
-  // Pricing configuration (matches backend)
-  const PRICING_CONFIG = {
-    two_wheeler: {
-      home_shifting: 15,    // ₹15 per km
-      goods_shifting: 12,   // ₹12 per km
-      materials_shifting: 10, // ₹10 per km
-      other: 13            // ₹13 per km
-    },
-    four_wheeler: {
-      home_shifting: 45,    // ₹45 per km
-      goods_shifting: 35,   // ₹35 per km
-      materials_shifting: 30, // ₹30 per km
-      other: 38            // ₹38 per km
-    },
-    six_wheeler: {
-      home_shifting: 90,    // ₹90 per km
-      goods_shifting: 75,   // ₹75 per km
-      materials_shifting: 65, // ₹65 per km
-      other: 80            // ₹80 per km
-    }
-  };
-
-  // Calculate distance between two coordinates using Haversine formula (matches backend)
-  const calculateDistance = (lat1, lng1, lat2, lng2) => {
-    if (!lat1 || !lng1 || !lat2 || !lng2) return 1.0;
-
-    const R = 6371; // Radius of the Earth in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
-
-    return Math.round(distance * 100) / 100; // Round to 2 decimal places
-  };
-
-  // Calculate total price based on selections
-  const calculatePrice = (vehicleType, logisticCategory, distanceKm) => {
+  const [pickupCoordinates, setPickupCoordinates] = useState(null);
+  const [dropCoordinates, setDropCoordinates] = useState(null);
+  // Calculate total price based on selections (memoized to prevent unnecessary re-renders)
+  const calculatePrice = useCallback((vehicleType, logisticCategory, distanceKm) => {
     const unitPrice = PRICING_CONFIG[vehicleType]?.[logisticCategory] || 0;
     return unitPrice * distanceKm;
-  };
+  }, []);
 
-  // Geocode address using Nominatim (matches backend)
+  // Geocode address using backend API for consistency
   const geocodeAddress = async (address) => {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-      const response = await fetch(url, {
-        headers: { 'Accept-Language': 'en' }
-      });
-      const data = await response.json();
+      const response = await axios.get(`/locations/geocode?address=${encodeURIComponent(address)}`);
 
-      if (Array.isArray(data) && data.length > 0) {
+      if (response.data && response.data.success) {
         return {
-          latitude: parseFloat(data[0].lat),
-          longitude: parseFloat(data[0].lon),
-          formattedAddress: data[0].display_name
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
+          formattedAddress: response.data.formattedAddress
         };
       }
       return null;
     } catch (error) {
-      console.warn('Geocoding failed for:', address, error);
+      console.warn('Backend geocoding failed for:', address, error);
       return null;
     }
   };
@@ -112,6 +68,8 @@ export default function CustomerDashboard() {
     const geocodeAndCalculateDistance = async () => {
       if (!requestForm.pickupAddress || !requestForm.dropAddress) {
         setEstimatedDistance(1.0);
+        setPickupCoordinates(null);
+        setDropCoordinates(null);
         return;
       }
 
@@ -123,9 +81,11 @@ export default function CustomerDashboard() {
           geocodeAddress(requestForm.dropAddress)
         ]);
 
-        setCoordinates({ pickup: pickupCoords, drop: dropCoords });
-
         if (pickupCoords && dropCoords) {
+          // Store the coordinates for later use when submitting
+          setPickupCoordinates(pickupCoords);
+          setDropCoordinates(dropCoords);
+          
           const distance = calculateDistance(
             pickupCoords.latitude,
             pickupCoords.longitude,
@@ -135,10 +95,14 @@ export default function CustomerDashboard() {
           setEstimatedDistance(distance);
         } else {
           setEstimatedDistance(1.0);
+          setPickupCoordinates(null);
+          setDropCoordinates(null);
         }
       } catch (error) {
         console.warn('Distance calculation failed:', error);
         setEstimatedDistance(1.0);
+        setPickupCoordinates(null);
+        setDropCoordinates(null);
       } finally {
         setIsCalculatingDistance(false);
       }
@@ -209,17 +173,13 @@ export default function CustomerDashboard() {
     if (d.pickupLatitude && d.pickupLongitude) {
       setPickup([parseFloat(d.pickupLatitude), parseFloat(d.pickupLongitude)]);
     } else if (d.pickupAddress) {
-      // Fallback geocoding using Nominatim (only if coordinates not stored)
+      // Fallback geocoding using Google Maps API (only if coordinates not stored)
       let cancelled = false;
       (async () => {
         try {
-          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.pickupAddress)}`;
-          const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-          const data = await res.json();
-          if (!cancelled && Array.isArray(data) && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lon = parseFloat(data[0].lon);
-            setPickup([lat, lon]);
+          const coords = await geocodeAddress(d.pickupAddress);
+          if (!cancelled && coords) {
+            setPickup([coords.latitude, coords.longitude]);
           } else {
             setPickup(null);
           }
@@ -244,17 +204,13 @@ export default function CustomerDashboard() {
     if (d.dropLatitude && d.dropLongitude) {
       setDestination([parseFloat(d.dropLatitude), parseFloat(d.dropLongitude)]);
     } else if (d.dropAddress) {
-      // Fallback geocoding using Nominatim (only if coordinates not stored)
+      // Fallback geocoding using Google Maps API (only if coordinates not stored)
       let cancelled = false;
       (async () => {
         try {
-          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.dropAddress)}`;
-          const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-          const data = await res.json();
-          if (!cancelled && Array.isArray(data) && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lon = parseFloat(data[0].lon);
-            setDestination([lat, lon]);
+          const coords = await geocodeAddress(d.dropAddress);
+          if (!cancelled && coords) {
+            setDestination([coords.latitude, coords.longitude]);
           } else {
             setDestination(null);
           }
@@ -306,8 +262,30 @@ export default function CustomerDashboard() {
     setError("");
     try {
       const { pickupAddress, dropAddress, productUrl, logisticType, vehicleType, logisticCategory } = requestForm;
-      await axios.post('/deliveries/request', { pickupAddress, dropAddress, productUrl, logisticType, vehicleType, logisticCategory });
+      
+      // Send the frontend-calculated coordinates and distance to ensure consistency
+      const requestData = {
+        pickupAddress,
+        dropAddress,
+        productUrl,
+        logisticType,
+        vehicleType,
+        logisticCategory,
+        // Include frontend-calculated values for consistency
+        distanceKm: estimatedDistance,
+        pickupLatitude: pickupCoordinates?.latitude,
+        pickupLongitude: pickupCoordinates?.longitude,
+        pickupFormattedAddress: pickupCoordinates?.formattedAddress,
+        dropLatitude: dropCoordinates?.latitude,
+        dropLongitude: dropCoordinates?.longitude,
+        dropFormattedAddress: dropCoordinates?.formattedAddress
+      };
+      
+      await axios.post('/deliveries/request', requestData);
       setRequestForm({ pickupAddress: "", dropAddress: "", productUrl: "", logisticType: "standard", vehicleType: "two_wheeler", logisticCategory: "goods_shifting" });
+      setPickupCoordinates(null);
+      setDropCoordinates(null);
+      setEstimatedDistance(1.0);
       await loadDeliveries();
     } catch (err) {
       console.error('Request delivery error:', err);
@@ -355,37 +333,18 @@ export default function CustomerDashboard() {
         <form onSubmit={submitRequest} className="mb-6 bg-white p-6 rounded-lg shadow transition-all duration-300 hover:shadow-md">
           <h3 className="font-semibold mb-4 text-lg text-gray-800">Request a Delivery</h3>
           
-          {/* Debug: Show current form state */}
-          {(requestForm.pickupAddress || requestForm.dropAddress) && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-md text-sm">
-              <div className="font-medium text-gray-700 mb-2">Current Selection:</div>
-              {requestForm.pickupAddress && (
-                <div className="text-green-600">
-                  <span className="font-medium">Pickup:</span> {requestForm.pickupAddress}
-                </div>
-              )}
-              {requestForm.dropAddress && (
-                <div className="text-blue-600">
-                  <span className="font-medium">Drop:</span> {requestForm.dropAddress}
-                </div>
-              )}
-            </div>
-          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Pickup Address</label>
               <EnhancedAddressAutocomplete
                 value={requestForm.pickupAddress}
                 onChange={(value) => {
-                  console.log('Pickup address onChange called with:', value); // Debug log
-                  console.log('Current requestForm before update:', requestForm);
-                  setRequestForm(prevForm => {
-                    const newForm = { ...prevForm, pickupAddress: value };
-                    console.log('New requestForm after update:', newForm);
-                    return newForm;
-                  });
+                  setRequestForm(prevForm => ({
+                    ...prevForm,
+                    pickupAddress: value
+                  }));
                 }}
-                placeholder="Enter pickup address (e.g., Mumbai, Delhi, Bangalore)"
+                placeholder="Enter pickup address (e.g., Andheri, Bandra, Whitefield, Delhi)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
               />
@@ -396,15 +355,12 @@ export default function CustomerDashboard() {
               <EnhancedAddressAutocomplete
                 value={requestForm.dropAddress}
                 onChange={(value) => {
-                  console.log('Drop address onChange called with:', value); // Debug log
-                  console.log('Current requestForm before update:', requestForm);
-                  setRequestForm(prevForm => {
-                    const newForm = { ...prevForm, dropAddress: value };
-                    console.log('New requestForm after update:', newForm);
-                    return newForm;
-                  });
+                  setRequestForm(prevForm => ({
+                    ...prevForm,
+                    dropAddress: value
+                  }));
                 }}
-                placeholder="Enter drop address (e.g., Chennai, Pune, Hyderabad)"
+                placeholder="Enter drop address (e.g., Indiranagar, Banjara Hills, Connaught Place, Chennai)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
               />
@@ -542,10 +498,12 @@ export default function CustomerDashboard() {
                         ? "text-green-600"
                         : d.status === "on_route"
                         ? "text-blue-600"
-                        : "text-yellow-600"
+                        : d.status === "pending"
+                        ? "text-yellow-600"
+                        : "text-gray-600"
                     } font-semibold transition-colors`}
                   >
-                    {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : "Pending"}
+                    {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : d.status === "pending" ? "Assigned" : "Unassigned"}
                   </span>
                   {d.vehicleType && (
                     <>
@@ -593,9 +551,9 @@ export default function CustomerDashboard() {
                 <div className="mt-3">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleCancel(d.id); }}
-                    disabled={d.status !== 'pending'}
+                    disabled={d.status !== 'pending' && d.status !== 'unassigned'}
                     className={`px-3 py-1.5 text-sm rounded transition active:scale-95 ${
-                      d.status === 'pending'
+                      (d.status === 'pending' || d.status === 'unassigned')
                         ? 'bg-red-600 text-white hover:bg-red-700'
                         : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }`}

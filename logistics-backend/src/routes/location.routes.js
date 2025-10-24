@@ -3,13 +3,13 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const locationCtrl = require('../controllers/location.controller');
 
-// Search locations by query (authenticated users only)
-router.get('/search', auth, locationCtrl.searchLocations);
+// Search locations by query (no authentication required - users need to search before logging in)
+router.get('/search', locationCtrl.searchLocations);
 
-// Get popular locations (authenticated users only)
-router.get('/popular', auth, locationCtrl.getPopularLocations);
+// Get popular locations (no authentication required - users need to search before logging in)
+router.get('/popular', locationCtrl.getPopularLocations);
 
-// Calculate route between two points (authenticated users only)
-router.get('/route', auth, locationCtrl.calculateRoute);
+// Geocode an address (no authentication required - needed for distance calculation in delivery requests)
+router.get('/geocode', locationCtrl.geocodeAddress);
 
 module.exports = router;

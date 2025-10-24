@@ -75,6 +75,25 @@ export default function DriverDashboard() {
     };
   }, [selectedDelivery]);
 
+  // Geocode address using backend API for consistency
+  const geocodeAddress = async (address) => {
+    try {
+      const response = await axios.get(`/locations/geocode?address=${encodeURIComponent(address)}`);
+
+      if (response.data && response.data.success) {
+        return {
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
+          formattedAddress: response.data.formattedAddress
+        };
+      }
+      return null;
+    } catch (error) {
+      console.warn('Backend geocoding failed for:', address, error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!selectedDelivery) return;
     const d = deliveries.find(x => x.id === selectedDelivery);
@@ -82,13 +101,11 @@ export default function DriverDashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.pickupAddress)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-        const data = await res.json();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-          setPickup([lat, lon]);
+        const coords = await geocodeAddress(d.pickupAddress);
+        if (!cancelled && coords) {
+          setPickup([coords.latitude, coords.longitude]);
+        } else {
+          setPickup(null);
         }
       } catch (e) {
         setPickup(null);
@@ -104,13 +121,11 @@ export default function DriverDashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(d.dropAddress)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-        const data = await res.json();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-          setDestination([lat, lon]);
+        const coords = await geocodeAddress(d.dropAddress);
+        if (!cancelled && coords) {
+          setDestination([coords.latitude, coords.longitude]);
+        } else {
+          setDestination(null);
         }
       } catch (e) {
         setDestination(null);
@@ -274,10 +289,12 @@ export default function DriverDashboard() {
                         ? "text-green-600"
                         : d.status === "on_route"
                         ? "text-blue-600"
-                        : "text-yellow-600"
+                        : d.status === "pending"
+                        ? "text-yellow-600"
+                        : "text-gray-600"
                     } font-semibold`}
                   >
-                    {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : "Pending"}
+                    {d.status === "on_route" ? "On Route" : d.status === "delivered" ? "Delivered" : d.status === "pending" ? "Assigned" : "Unassigned"}
                   </span>
                   {d.vehicleType && (
                     <>

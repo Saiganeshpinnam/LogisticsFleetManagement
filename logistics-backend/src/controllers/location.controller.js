@@ -1,17 +1,155 @@
 const axios = require('axios');
+const { geocodeAddress, geocodeAddressFallback } = require('../utils/geocoding');
 
 // Comprehensive list of Indian cities, states, and popular areas
 const indianLocations = [
-  // Major Metropolitan Cities
+  // Major Metropolitan Cities with Areas
   'Mumbai, Maharashtra, India',
+  'Mumbai Central, Mumbai, Maharashtra, India',
+  'Andheri East, Mumbai, Maharashtra, India',
+  'Andheri West, Mumbai, Maharashtra, India',
+  'Bandra East, Mumbai, Maharashtra, India',
+  'Bandra West, Mumbai, Maharashtra, India',
+  'Borivali East, Mumbai, Maharashtra, India',
+  'Borivali West, Mumbai, Maharashtra, India',
+  'Dadar, Mumbai, Maharashtra, India',
+  'Goregaon East, Mumbai, Maharashtra, India',
+  'Goregaon West, Mumbai, Maharashtra, India',
+  'Juhu, Mumbai, Maharashtra, India',
+  'Kandivali East, Mumbai, Maharashtra, India',
+  'Kandivali West, Mumbai, Maharashtra, India',
+  'Lower Parel, Mumbai, Maharashtra, India',
+  'Malad East, Mumbai, Maharashtra, India',
+  'Malad West, Mumbai, Maharashtra, India',
+  'Powai, Mumbai, Maharashtra, India',
+  'Santacruz East, Mumbai, Maharashtra, India',
+  'Santacruz West, Mumbai, Maharashtra, India',
+  'Thane East, Mumbai, Maharashtra, India',
+  'Thane West, Mumbai, Maharashtra, India',
+  'Vikhroli, Mumbai, Maharashtra, India',
+  'Worli, Mumbai, Maharashtra, India',
+
   'Delhi, India',
   'New Delhi, Delhi, India',
+  'Connaught Place, New Delhi, Delhi, India',
+  'Karol Bagh, New Delhi, Delhi, India',
+  'Lajpat Nagar, New Delhi, Delhi, India',
+  'South Extension, New Delhi, Delhi, India',
+  'Rajouri Garden, New Delhi, Delhi, India',
+  'Dwarka, New Delhi, Delhi, India',
+  'Rohini, New Delhi, Delhi, India',
+  'Pitampura, New Delhi, Delhi, India',
+  'Janakpuri, New Delhi, Delhi, India',
+  'Uttam Nagar, New Delhi, Delhi, India',
+  'Vikaspuri, New Delhi, Delhi, India',
+  'Paschim Vihar, New Delhi, Delhi, India',
+  'Punjabi Bagh, New Delhi, Delhi, India',
+  'Shalimar Bagh, New Delhi, Delhi, India',
+  'Model Town, New Delhi, Delhi, India',
+  'Azadpur, New Delhi, Delhi, India',
+  'Kamla Nagar, New Delhi, Delhi, India',
+  'Civil Lines, New Delhi, Delhi, India',
+  'Old Delhi, Delhi, India',
+  'Chandni Chowk, Old Delhi, Delhi, India',
+
   'Bangalore, Karnataka, India',
   'Bengaluru, Karnataka, India',
+  'Whitefield, Bangalore, Karnataka, India',
+  'Electronic City, Bangalore, Karnataka, India',
+  'Marathahalli, Bangalore, Karnataka, India',
+  'HSR Layout, Bangalore, Karnataka, India',
+  'Indiranagar, Bangalore, Karnataka, India',
+  'Koramangala, Bangalore, Karnataka, India',
+  'Jayanagar, Bangalore, Karnataka, India',
+  'Rajajinagar, Bangalore, Karnataka, India',
+  'Malleshwaram, Bangalore, Karnataka, India',
+  'Basavanagudi, Bangalore, Karnataka, India',
+  'Richmond Town, Bangalore, Karnataka, India',
+  'Shivajinagar, Bangalore, Karnataka, India',
+  'Frazer Town, Bangalore, Karnataka, India',
+  'Cox Town, Bangalore, Karnataka, India',
+  'Ulsoor, Bangalore, Karnataka, India',
+  'Cunningham Road, Bangalore, Karnataka, India',
+  'Richmond Road, Bangalore, Karnataka, India',
+
   'Hyderabad, Telangana, India',
+  'Secunderabad, Hyderabad, Telangana, India',
+  'Banjara Hills, Hyderabad, Telangana, India',
+  'Jubilee Hills, Hyderabad, Telangana, India',
+  'Gachibowli, Hyderabad, Telangana, India',
+  'Kondapur, Hyderabad, Telangana, India',
+  'Hitech City, Hyderabad, Telangana, India',
+  'Madhapur, Hyderabad, Telangana, India',
+  'Kukatpally, Hyderabad, Telangana, India',
+  'Miyapur, Hyderabad, Telangana, India',
+  'Ameerpet, Hyderabad, Telangana, India',
+  'Begumpet, Hyderabad, Telangana, India',
+  'Somajiguda, Hyderabad, Telangana, India',
+  'Panjagutta, Hyderabad, Telangana, India',
+  'Himayathnagar, Hyderabad, Telangana, India',
+  'Abids, Hyderabad, Telangana, India',
+  'Mehdipatnam, Hyderabad, Telangana, India',
+  'Tolichowki, Hyderabad, Telangana, India',
+  'Malakpet, Hyderabad, Telangana, India',
+
   'Chennai, Tamil Nadu, India',
+  'T. Nagar, Chennai, Tamil Nadu, India',
+  'Adyar, Chennai, Tamil Nadu, India',
+  'Velachery, Chennai, Tamil Nadu, India',
+  'Nungambakkam, Chennai, Tamil Nadu, India',
+  'Egmore, Chennai, Tamil Nadu, India',
+  'Mylapore, Chennai, Tamil Nadu, India',
+  'Triplicane, Chennai, Tamil Nadu, India',
+  'George Town, Chennai, Tamil Nadu, India',
+  'Parrys, Chennai, Tamil Nadu, India',
+  'Guindy, Chennai, Tamil Nadu, India',
+  'Saidapet, Chennai, Tamil Nadu, India',
+  'Thambaram, Chennai, Tamil Nadu, India',
+  'Pallavaram, Chennai, Tamil Nadu, India',
+  'Chromepet, Chennai, Tamil Nadu, India',
+  'Tambaram, Chennai, Tamil Nadu, India',
+  'Medavakkam, Chennai, Tamil Nadu, India',
+  'Sholinganallur, Chennai, Tamil Nadu, India',
+  'Perungudi, Chennai, Tamil Nadu, India',
+
   'Kolkata, West Bengal, India',
+  'Salt Lake City, Kolkata, West Bengal, India',
+  'New Town, Kolkata, West Bengal, India',
+  'Park Street, Kolkata, West Bengal, India',
+  'Camac Street, Kolkata, West Bengal, India',
+  'Ballygunge, Kolkata, West Bengal, India',
+  'Alipore, Kolkata, West Bengal, India',
+  'Tollygunge, Kolkata, West Bengal, India',
+  'Jadavpur, Kolkata, West Bengal, India',
+  'Garia, Kolkata, West Bengal, India',
+  'Howrah, Kolkata, West Bengal, India',
+  'Bhowanipore, Kolkata, West Bengal, India',
+  'Lansdowne, Kolkata, West Bengal, India',
+  'Minto Park, Kolkata, West Bengal, India',
+  'Esplanade, Kolkata, West Bengal, India',
+  'Dalhousie, Kolkata, West Bengal, India',
+  'BBD Bagh, Kolkata, West Bengal, India',
+
   'Pune, Maharashtra, India',
+  'Koregaon Park, Pune, Maharashtra, India',
+  'Aundh, Pune, Maharashtra, India',
+  'Wakad, Pune, Maharashtra, India',
+  'Hinjewadi, Pune, Maharashtra, India',
+  'Baner, Pune, Maharashtra, India',
+  'Pimpri, Pune, Maharashtra, India',
+  'Chinchwad, Pune, Maharashtra, India',
+  'Kothrud, Pune, Maharashtra, India',
+  'Deccan Gymkhana, Pune, Maharashtra, India',
+  'Camp, Pune, Maharashtra, India',
+  'Hadapsar, Pune, Maharashtra, India',
+  'Magarpatta, Pune, Maharashtra, India',
+  'Wagholi, Pune, Maharashtra, India',
+  'Kharadi, Pune, Maharashtra, India',
+  'Viman Nagar, Pune, Maharashtra, India',
+  'Yerwada, Pune, Maharashtra, India',
+  'Kalyaninagar, Pune, Maharashtra, India',
+
+  // Other Major Cities (keeping existing ones but adding areas for major ones)
   'Ahmedabad, Gujarat, India',
   'Jaipur, Rajasthan, India',
   'Surat, Gujarat, India',
@@ -22,206 +160,9 @@ const indianLocations = [
   'Thane, Maharashtra, India',
   'Bhopal, Madhya Pradesh, India',
   'Visakhapatnam, Andhra Pradesh, India',
-  'Pimpri-Chinchwad, Maharashtra, India',
   'Patna, Bihar, India',
   'Vadodara, Gujarat, India',
-  'Ghaziabad, Uttar Pradesh, India',
-  'Ludhiana, Punjab, India',
-  'Agra, Uttar Pradesh, India',
-  'Nashik, Maharashtra, India',
-  'Faridabad, Haryana, India',
-  'Meerut, Uttar Pradesh, India',
-  'Rajkot, Gujarat, India',
-  'Kalyan-Dombivali, Maharashtra, India',
-  'Vasai-Virar, Maharashtra, India',
-  'Varanasi, Uttar Pradesh, India',
-  'Srinagar, Jammu and Kashmir, India',
-  'Aurangabad, Maharashtra, India',
-  'Dhanbad, Jharkhand, India',
-  'Amritsar, Punjab, India',
-  'Navi Mumbai, Maharashtra, India',
-  'Allahabad, Uttar Pradesh, India',
-  'Prayagraj, Uttar Pradesh, India',
-  'Ranchi, Jharkhand, India',
-  'Howrah, West Bengal, India',
-  'Coimbatore, Tamil Nadu, India',
-  'Jabalpur, Madhya Pradesh, India',
-  'Gwalior, Madhya Pradesh, India',
-  'Vijayawada, Andhra Pradesh, India',
-  'Jodhpur, Rajasthan, India',
-  'Madurai, Tamil Nadu, India',
-  'Raipur, Chhattisgarh, India',
-  'Kota, Rajasthan, India',
-  'Chandigarh, India',
-  'Guwahati, Assam, India',
-  'Solapur, Maharashtra, India',
-  'Hubli-Dharwad, Karnataka, India',
-  'Bareilly, Uttar Pradesh, India',
-  'Moradabad, Uttar Pradesh, India',
-  'Mysore, Karnataka, India',
-  'Mysuru, Karnataka, India',
-  'Gurgaon, Haryana, India',
-  'Gurugram, Haryana, India',
-  'Aligarh, Uttar Pradesh, India',
-  'Jalandhar, Punjab, India',
-  'Tiruchirappalli, Tamil Nadu, India',
-  'Bhubaneswar, Odisha, India',
-  'Salem, Tamil Nadu, India',
-  'Warangal, Telangana, India',
-  'Guntur, Andhra Pradesh, India',
-  'Bhiwandi, Maharashtra, India',
-  'Saharanpur, Uttar Pradesh, India',
-  'Gorakhpur, Uttar Pradesh, India',
-  'Bikaner, Rajasthan, India',
-  'Amravati, Maharashtra, India',
-  'Noida, Uttar Pradesh, India',
-  'Jamshedpur, Jharkhand, India',
-  'Bhilai, Chhattisgarh, India',
-  'Cuttack, Odisha, India',
-  'Firozabad, Uttar Pradesh, India',
-  'Kochi, Kerala, India',
-  'Cochin, Kerala, India',
-  'Ernakulam, Kerala, India',
-  'Bhavnagar, Gujarat, India',
-  'Dehradun, Uttarakhand, India',
-  'Durgapur, West Bengal, India',
-  'Asansol, West Bengal, India',
-  'Rourkela, Odisha, India',
-  'Nanded, Maharashtra, India',
-  'Kolhapur, Maharashtra, India',
-  'Ajmer, Rajasthan, India',
-  'Akola, Maharashtra, India',
-  'Gulbarga, Karnataka, India',
-  'Jamnagar, Gujarat, India',
-  'Ujjain, Madhya Pradesh, India',
-  'Loni, Uttar Pradesh, India',
-  'Siliguri, West Bengal, India',
-  'Jhansi, Uttar Pradesh, India',
-  'Ulhasnagar, Maharashtra, India',
-  'Jammu, Jammu and Kashmir, India',
-  'Sangli-Miraj & Kupwad, Maharashtra, India',
-  'Mangalore, Karnataka, India',
-  'Erode, Tamil Nadu, India',
-  'Belgaum, Karnataka, India',
-  'Ambattur, Tamil Nadu, India',
-  'Tirunelveli, Tamil Nadu, India',
-  'Malegaon, Maharashtra, India',
-  'Gaya, Bihar, India',
-  'Jalgaon, Maharashtra, India',
-  'Udaipur, Rajasthan, India',
-  'Maheshtala, West Bengal, India',
-  'Tirupur, Tamil Nadu, India',
-  'Davanagere, Karnataka, India',
-  'Kozhikode, Kerala, India',
-  'Calicut, Kerala, India',
-  'Akron, Ohio, USA', // Remove this - it's not Indian
-  'Kurnool, Andhra Pradesh, India',
-  'Rajpur Sonarpur, West Bengal, India',
-  'Rajahmundry, Andhra Pradesh, India',
-  'Bokaro, Jharkhand, India',
-  'South Dumdum, West Bengal, India',
-  'Bellary, Karnataka, India',
-  'Patiala, Punjab, India',
-  'Gopalpur, Odisha, India',
-  'Agartala, Tripura, India',
-  'Bhagalpur, Bihar, India',
-  'Muzaffarnagar, Uttar Pradesh, India',
-  'Bhatpara, West Bengal, India',
-  'Panihati, West Bengal, India',
-  'Latur, Maharashtra, India',
-  'Dhule, Maharashtra, India',
-  'Rohtak, Haryana, India',
-  'Korba, Chhattisgarh, India',
-  'Bhilwara, Rajasthan, India',
-  'Berhampur, Odisha, India',
-  'Muzaffarpur, Bihar, India',
-  'Ahmednagar, Maharashtra, India',
-  'Mathura, Uttar Pradesh, India',
-  'Kollam, Kerala, India',
-  'Avadi, Tamil Nadu, India',
-  'Kadapa, Andhra Pradesh, India',
-  'Kamarhati, West Bengal, India',
-  'Sambalpur, Odisha, India',
-  'Bilaspur, Chhattisgarh, India',
-  'Shahjahanpur, Uttar Pradesh, India',
-  'Satara, Maharashtra, India',
-  'Bijapur, Karnataka, India',
-  'Rampur, Uttar Pradesh, India',
-  'Shivamogga, Karnataka, India',
-  'Chandrapur, Maharashtra, India',
-  'Junagadh, Gujarat, India',
-  'Thrissur, Kerala, India',
-  'Alwar, Rajasthan, India',
-  'Bardhaman, West Bengal, India',
-  'Kulti, West Bengal, India',
-  'Kakinada, Andhra Pradesh, India',
-  'Nizamabad, Telangana, India',
-  'Parbhani, Maharashtra, India',
-  'Tumkur, Karnataka, India',
-  'Khammam, Telangana, India',
-  'Ozhukarai, Puducherry, India',
-  'Bihar Sharif, Bihar, India',
-  'Panipat, Haryana, India',
-  'Darbhanga, Bihar, India',
-  'Bally, West Bengal, India',
-  'Aizawl, Mizoram, India',
-  'Dewas, Madhya Pradesh, India',
-  'Ichalkaranji, Maharashtra, India',
-  'Karnal, Haryana, India',
-  'Bathinda, Punjab, India',
-  'Jalna, Maharashtra, India',
-  'Eluru, Andhra Pradesh, India',
-  'Kirari Suleman Nagar, Delhi, India',
-  'Barabanki, Uttar Pradesh, India',
-  'Purnia, Bihar, India',
-  'Satna, Madhya Pradesh, India',
-  'Mau, Uttar Pradesh, India',
-  'Sonipat, Haryana, India',
-  'Farrukhabad, Uttar Pradesh, India',
-  'Sagar, Madhya Pradesh, India',
-  'Rourkela, Odisha, India',
-  'Durg, Chhattisgarh, India',
-  'Imphal, Manipur, India',
-  'Ratlam, Madhya Pradesh, India',
-  'Hapur, Uttar Pradesh, India',
-  'Arrah, Bihar, India',
-  'Karimnagar, Telangana, India',
-  'Anantapur, Andhra Pradesh, India',
-  'Etawah, Uttar Pradesh, India',
-  'Ambernath, Maharashtra, India',
-  'North Dumdum, West Bengal, India',
-  'Bharatpur, Rajasthan, India',
-  'Begusarai, Bihar, India',
-  'New Delhi, Delhi, India',
-  'Gandhidham, Gujarat, India',
-  'Baranagar, West Bengal, India',
-  'Tiruvottiyur, Tamil Nadu, India',
-  'Pondicherry, Puducherry, India',
-  'Sikar, Rajasthan, India',
-  'Thoothukudi, Tamil Nadu, India',
-  'Rewa, Madhya Pradesh, India',
-  'Mirzapur, Uttar Pradesh, India',
-  'Raichur, Karnataka, India',
-  'Pali, Rajasthan, India',
-  'Ramagundam, Telangana, India',
-  'Silchar, Assam, India',
-  'Orai, Uttar Pradesh, India',
-  'Tonk, Rajasthan, India',
-  'Ramgarh, Jharkhand, India',
-  'Vizianagaram, Andhra Pradesh, India',
-  'Nashik, Maharashtra, India',
-  'Dewas, Madhya Pradesh, India',
-  'Hospet, Karnataka, India',
-  'Buxar, Bihar, India',
-  'Jehanabad, Bihar, India',
-  'Aurangabad, Bihar, India',
-  'Phusro, Jharkhand, India',
-  'Adoni, Andhra Pradesh, India',
-  'Tinsukia, Assam, India',
-  'Machilipatnam, Andhra Pradesh, India',
-  'Udupi, Karnataka, India',
-  'Serampore, West Bengal, India',
-  'Kozhikode, Kerala, India'
+  'Ghaziabad, Uttar Pradesh, India'
 ];
 
 // Remove duplicates and filter out non-Indian locations
@@ -229,161 +170,492 @@ const uniqueIndianLocations = [...new Set(indianLocations)]
   .filter(location => location.includes('India'))
   .sort();
 
-// Search locations based on query
+// Search locations based on query with enhanced Google Maps-like suggestions
 exports.searchLocations = async (req, res) => {
   try {
     const { q: query, limit = 10 } = req.query;
-    
-    if (!query || query.length < 2) {
-      return res.status(400).json({ 
-        message: 'Query parameter "q" is required and must be at least 2 characters long' 
+
+    if (!query || query.length < 1) {
+      return res.status(400).json({
+        message: 'Query parameter "q" is required and must be at least 1 character long'
       });
     }
 
     const searchQuery = query.toLowerCase().trim();
-    const limitNum = Math.min(parseInt(limit) || 10, 20); // Max 20 results
+    const limitNum = Math.min(parseInt(limit) || 10, 50); // Increased max limit for better suggestions
 
-    // Search in local database first for quick results
+    // Enhanced local results with more comprehensive Indian locations and area support
     const localResults = uniqueIndianLocations
       .filter(location => {
         const locationLower = location.toLowerCase();
-        // Check if query matches city name, state name, or full address
-        return locationLower.includes(searchQuery) || 
-               locationLower.split(',')[0].trim().startsWith(searchQuery) ||
-               locationLower.split(',').some(part => part.trim().startsWith(searchQuery));
-      })
-      .slice(0, Math.floor(limitNum / 2)) // Take half from local results
-      .map((location, index) => ({
-        id: `local_${index}`,
-        description: location,
-        main_text: location.split(',')[0].trim(),
-        secondary_text: location.split(',').slice(1).join(',').trim(),
-        source: 'local'
-      }));
+        const searchQueryLower = searchQuery.toLowerCase();
 
-    // Search using OpenStreetMap Nominatim API for additional results
-    let apiResults = [];
-    try {
-      const encodedQuery = encodeURIComponent(`${query}, India`);
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=${limitNum}&countrycodes=in&addressdetails=1`;
-      
-      const response = await axios.get(nominatimUrl, {
-        headers: {
-          'User-Agent': 'LogisticsFleetApp/1.0 (contact@logistics.com)',
-          'Accept-Language': 'en'
-        },
-        timeout: 5000 // 5 second timeout
+        // Enhanced matching logic for areas and neighborhoods
+        const locationParts = locationLower.split(',');
+        const cityName = locationParts[0]?.trim();
+        const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
+
+        // Check for exact area matches (e.g., "Andheri" -> "Andheri East", "Andheri West")
+        if (areaName && areaName.includes(searchQueryLower)) return true;
+
+        // Check for partial area matches (e.g., "bandra" -> "Bandra East", "Bandra West")
+        if (areaName && searchQueryLower.split(' ').some(part =>
+          areaName.includes(part) || part.includes(areaName.split(' ')[0])
+        )) return true;
+
+        // Check for city matches (existing logic)
+        return locationLower.includes(searchQueryLower) ||
+               cityName.startsWith(searchQueryLower) ||
+               cityName.includes(searchQueryLower) ||
+               // Check for partial matches in city names
+               locationLower.split(',').some(part => part.trim().startsWith(searchQueryLower)) ||
+               // Check for state/region matches
+               locationLower.split(',').slice(1).some(part =>
+                 part.trim().toLowerCase().includes(searchQueryLower)
+               );
+      })
+      .slice(0, Math.ceil(limitNum * 0.6)) // Take 60% from local results for better API integration
+      .map((location, index) => {
+        const locationParts = location.split(',');
+        const cityName = locationParts[0]?.trim();
+        const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
+        const stateName = locationParts.length > 2 ? locationParts[2]?.trim() : '';
+
+        return {
+          id: `local_${index}`,
+          description: location,
+          main_text: areaName ? `${areaName}, ${cityName}` : cityName,
+          secondary_text: [stateName, 'India'].filter(Boolean).join(', '),
+          source: 'local',
+          city: cityName,
+          area: areaName,
+          state: stateName,
+          // Add structured data for better frontend display
+          structured_formatting: {
+            main_text: areaName ? `${areaName}, ${cityName}` : cityName,
+            secondary_text: [stateName, 'India'].filter(Boolean).join(', ')
+          }
+        };
       });
 
-      apiResults = response.data
-        .filter(item => item.display_name && item.display_name.includes('India'))
-        .slice(0, limitNum - localResults.length)
-        .map(item => ({
-          id: item.place_id,
-          description: item.display_name,
-          main_text: item.name || item.display_name.split(',')[0].trim(),
-          secondary_text: item.display_name.split(',').slice(1).join(',').trim(),
-          latitude: parseFloat(item.lat),
-          longitude: parseFloat(item.lon),
-          source: 'nominatim'
-        }));
+    console.log(`🔍 Search for "${query}": Found ${localResults.length} local results`);
+
+    // Enhanced API search with better Google Maps Places API integration
+    let apiResults = [];
+    try {
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+      if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+        console.log('🌐 Using Google Maps API for search');
+        // Use Google Maps Places API (Autocomplete) with enhanced parameters
+        const encodedQuery = encodeURIComponent(`${query}, India`);
+        const placesUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodedQuery}&types=geocode&components=country:in&key=${apiKey}`;
+
+        const response = await axios.get(placesUrl, {
+          timeout: 8000 // Increased timeout for better reliability
+        });
+
+        console.log('📡 Google Places API response:', response.data);
+
+        if (response.data && response.data.predictions && response.data.predictions.length > 0) {
+          console.log(`✅ Found ${response.data.predictions.length} Google Places results`);
+          // Get place details for each prediction to get coordinates and better data
+          const placeDetailsPromises = response.data.predictions
+            .slice(0, Math.ceil(limitNum * 0.7)) // Take 70% from API results
+            .map(async (prediction) => {
+              try {
+                const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${prediction.place_id}&fields=formatted_address,geometry,types,address_components&key=${apiKey}`;
+                const detailsResponse = await axios.get(detailsUrl, { timeout: 5000 });
+
+                if (detailsResponse.data && detailsResponse.data.result) {
+                  const result = detailsResponse.data.result;
+                  const addressComponents = result.address_components || [];
+
+                  // Extract city, state, country information
+                  const city = addressComponents.find(comp => comp.types.includes('locality'))?.long_name ||
+                              addressComponents.find(comp => comp.types.includes('administrative_area_level_2'))?.long_name;
+                  const state = addressComponents.find(comp => comp.types.includes('administrative_area_level_1'))?.long_name;
+                  const country = addressComponents.find(comp => comp.types.includes('country'))?.long_name;
+
+                  const mainText = prediction.structured_formatting?.main_text || city || prediction.description.split(',')[0].trim();
+                  const secondaryText = prediction.structured_formatting?.secondary_text ||
+                                     [state, country].filter(Boolean).join(', ') ||
+                                     prediction.description.split(',').slice(1).join(',').trim();
+
+                  return {
+                    id: prediction.place_id,
+                    description: result.formatted_address,
+                    main_text: mainText,
+                    secondary_text: secondaryText,
+                    latitude: result.geometry?.location?.lat,
+                    longitude: result.geometry?.location?.lng,
+                    source: 'google_places',
+                    place_id: prediction.place_id,
+                    types: result.types || [],
+                    structured_formatting: {
+                      main_text: mainText,
+                      secondary_text: secondaryText
+                    }
+                  };
+                }
+              } catch (detailsError) {
+                console.warn('Place details error for', prediction.description, ':', detailsError.message);
+                // Return basic prediction data even if details fail
+                return {
+                  id: prediction.place_id,
+                  description: prediction.description,
+                  main_text: prediction.structured_formatting?.main_text || prediction.description.split(',')[0].trim(),
+                  secondary_text: prediction.structured_formatting?.secondary_text || prediction.description.split(',').slice(1).join(',').trim(),
+                  source: 'google_places_basic',
+                  place_id: prediction.place_id
+                };
+              }
+              return null;
+            });
+
+          const placeDetailsResults = await Promise.allSettled(placeDetailsPromises);
+          apiResults = placeDetailsResults
+            .filter(result => result.status === 'fulfilled' && result.value !== null)
+            .map(result => result.value);
+        } else {
+          console.log('❌ No Google Places results found');
+        }
+      } else {
+        console.log('🔑 Google Maps API key not configured, using enhanced Nominatim fallback');
+      }
+
+      // Enhanced fallback to OpenStreetMap Nominatim API with better filtering
+      if (apiResults.length < Math.floor(limitNum * 0.5)) {
+        console.log('🌍 Using OpenStreetMap Nominatim as fallback');
+        const encodedQuery = encodeURIComponent(`${query}, India`);
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=${Math.max(limitNum, 15)}&countrycodes=in&addressdetails=1&dedupe=1`;
+
+        const fallbackResponse = await axios.get(nominatimUrl, {
+          headers: {
+            'User-Agent': 'LogisticsFleetApp/1.0 (contact@logistics.com)',
+            'Accept-Language': 'en'
+          },
+          timeout: 8000
+        });
+
+        console.log('📡 Nominatim API response:', fallbackResponse.data);
+
+        const nominatimResults = fallbackResponse.data
+          .filter(item => item.display_name && item.display_name.includes('India'))
+          .slice(0, limitNum - localResults.length - apiResults.length)
+          .map(item => {
+            const addressDetails = item.address || {};
+            const city = addressDetails.city || addressDetails.town || addressDetails.village || item.display_name.split(',')[0].trim();
+            const state = addressDetails.state || addressDetails.region;
+
+            return {
+              id: item.place_id,
+              description: item.display_name,
+              main_text: city,
+              secondary_text: [state, 'India'].filter(Boolean).join(', '),
+              latitude: parseFloat(item.lat),
+              longitude: parseFloat(item.lon),
+              source: 'nominatim_enhanced',
+              place_id: item.place_id,
+              structured_formatting: {
+                main_text: city,
+                secondary_text: [state, 'India'].filter(Boolean).join(', ')
+              }
+            };
+          });
+
+        console.log(`✅ Found ${nominatimResults.length} Nominatim results`);
+        apiResults.push(...nominatimResults);
+      }
     } catch (apiError) {
-      console.warn('Nominatim API error:', apiError.message);
-      // Continue with local results only
+      console.warn('Enhanced location search API error:', apiError.message);
     }
 
-    // Combine results, prioritizing local results and removing duplicates
-    const combinedResults = [...localResults];
-    
-    // Add API results that don't duplicate local results
-    apiResults.forEach(apiResult => {
-      const isDuplicate = localResults.some(localResult => 
-        localResult.main_text.toLowerCase() === apiResult.main_text.toLowerCase()
-      );
-      if (!isDuplicate) {
-        combinedResults.push(apiResult);
-      }
-    });
+    // Combine all results for final processing
+    const combinedResults = [...localResults, ...apiResults];
 
-    // Sort results by relevance (exact matches first, then starts with, then contains)
+    // Always ensure we return some results - comprehensive fallback system
+    if (combinedResults.length === 0) {
+      console.log('🚨 No results found, using comprehensive fallback');
+      // Ultimate fallback - return popular cities that match the query
+      const fallbackResults = [
+        'Mumbai, Maharashtra, India',
+        'Delhi, India',
+        'Bangalore, Karnataka, India',
+        'Hyderabad, Telangana, India',
+        'Chennai, Tamil Nadu, India',
+        'Kolkata, West Bengal, India',
+        'Pune, Maharashtra, India',
+        'Ahmedabad, Gujarat, India',
+        'Jaipur, Rajasthan, India',
+        'Surat, Gujarat, India',
+        'Lucknow, Uttar Pradesh, India',
+        'Kanpur, Uttar Pradesh, India',
+        'Nagpur, Maharashtra, India',
+        'Indore, Madhya Pradesh, India',
+        'Thane, Maharashtra, India'
+      ]
+        .filter(location => location.toLowerCase().includes(searchQuery))
+        .slice(0, Math.min(limitNum, 10))
+        .map((location, index) => {
+          const locationParts = location.split(',');
+          const cityName = locationParts[0]?.trim();
+          const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
+          const stateName = locationParts.length > 2 ? locationParts[2]?.trim() : '';
+
+          return {
+            id: `fallback_${index}`,
+            description: location,
+            main_text: areaName ? `${areaName}, ${cityName}` : cityName,
+            secondary_text: [stateName, 'India'].filter(Boolean).join(', '),
+            source: 'fallback',
+            city: cityName,
+            area: areaName,
+            state: stateName,
+            structured_formatting: {
+              main_text: areaName ? `${areaName}, ${cityName}` : cityName,
+              secondary_text: [stateName, 'India'].filter(Boolean).join(', ')
+            }
+          };
+        });
+
+      console.log(`✅ Using fallback results: ${fallbackResults.length}`);
+      combinedResults.push(...fallbackResults);
+    }
+
+    console.log(`📊 Final results: ${localResults.length} local + ${apiResults.length} API + fallback = ${combinedResults.length} total`);
+
+    // Enhanced sorting for better Google Maps-like experience with area prioritization
     const sortedResults = combinedResults.sort((a, b) => {
       const aMainLower = a.main_text.toLowerCase();
       const bMainLower = b.main_text.toLowerCase();
       const queryLower = searchQuery.toLowerCase();
 
-      // Exact match
+      // Helper function to check if result has area information
+      const hasArea = (result) => result.area && result.area.trim() !== '';
+
+      // Prioritize results with area information when searching for areas
+      if (hasArea(a) && !hasArea(b)) return -1;
+      if (hasArea(b) && !hasArea(a)) return 1;
+
+      // Exact match in main text (city or area)
       if (aMainLower === queryLower && bMainLower !== queryLower) return -1;
       if (bMainLower === queryLower && aMainLower !== queryLower) return 1;
 
-      // Starts with query
+      // Area-specific matches get higher priority
+      if (hasArea(a) && hasArea(b)) {
+        // Both have areas - prioritize exact area matches
+        if (a.area.toLowerCase() === queryLower && b.area.toLowerCase() !== queryLower) return -1;
+        if (b.area.toLowerCase() === queryLower && a.area.toLowerCase() !== queryLower) return 1;
+
+        // Prioritize area names that start with the query
+        if (a.area.toLowerCase().startsWith(queryLower) && !b.area.toLowerCase().startsWith(queryLower)) return -1;
+        if (b.area.toLowerCase().startsWith(queryLower) && !a.area.toLowerCase().startsWith(queryLower)) return 1;
+
+        // Prioritize areas that contain the query
+        if (a.area.toLowerCase().includes(queryLower) && !b.area.toLowerCase().includes(queryLower)) return -1;
+        if (b.area.toLowerCase().includes(queryLower) && !a.area.toLowerCase().includes(queryLower)) return 1;
+      }
+
+      // Starts with query (city or area name)
       if (aMainLower.startsWith(queryLower) && !bMainLower.startsWith(queryLower)) return -1;
       if (bMainLower.startsWith(queryLower) && !aMainLower.startsWith(queryLower)) return 1;
+
+      // Contains query
+      if (aMainLower.includes(queryLower) && !bMainLower.includes(queryLower)) return -1;
+      if (bMainLower.includes(queryLower) && !aMainLower.includes(queryLower)) return 1;
+
+      // Prioritize Google Places results
+      if (a.source.includes('google') && !b.source.includes('google')) return -1;
+      if (b.source.includes('google') && !a.source.includes('google')) return 1;
+
+      // Prioritize local results over fallbacks
+      if (a.source === 'local' && b.source !== 'local') return -1;
+      if (b.source === 'local' && a.source !== 'local') return 1;
 
       // Alphabetical order for same relevance
       return aMainLower.localeCompare(bMainLower);
     });
 
+    console.log(`🎯 Returning ${sortedResults.slice(0, limitNum).length} sorted results`);
+
     return res.json({
       query: query,
       results: sortedResults.slice(0, limitNum),
-      total: sortedResults.length
+      total: sortedResults.length,
+      sources: [...new Set(sortedResults.map(r => r.source))],
+      hasMore: sortedResults.length > limitNum
     });
 
   } catch (error) {
-    console.error('Location search error:', error);
-    return res.status(500).json({ 
-      message: 'Internal server error', 
-      error: error.message 
+    console.error('Enhanced location search error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };
 
 // Get popular locations (for initial display or when no query)
 exports.getPopularLocations = async (req, res) => {
-  try {
-    const { limit = 20 } = req.query;
-    const limitNum = Math.min(parseInt(limit) || 20, 50);
+try {
+  const { limit = 20 } = req.query;
+  const limitNum = Math.min(parseInt(limit) || 20, 50);
 
-    // Return most popular Indian cities
-    const popularCities = [
-      'Mumbai, Maharashtra, India',
-      'Delhi, India',
-      'Bangalore, Karnataka, India',
-      'Hyderabad, Telangana, India',
-      'Chennai, Tamil Nadu, India',
-      'Kolkata, West Bengal, India',
-      'Pune, Maharashtra, India',
-      'Ahmedabad, Gujarat, India',
-      'Jaipur, Rajasthan, India',
-      'Surat, Gujarat, India',
-      'Lucknow, Uttar Pradesh, India',
-      'Kanpur, Uttar Pradesh, India',
-      'Nagpur, Maharashtra, India',
-      'Indore, Madhya Pradesh, India',
-      'Thane, Maharashtra, India',
-      'Bhopal, Madhya Pradesh, India',
-      'Visakhapatnam, Andhra Pradesh, India',
-      'Patna, Bihar, India',
-      'Vadodara, Gujarat, India',
-      'Ghaziabad, Uttar Pradesh, India'
-    ].slice(0, limitNum).map((location, index) => ({
+  console.log(`🏠 Popular locations request: limit=${limitNum}`);
+
+  // Return most popular Indian cities and areas
+  const popularCities = [
+    // Major cities with their popular areas
+    'Mumbai, Maharashtra, India',
+    'Andheri East, Mumbai, Maharashtra, India',
+    'Andheri West, Mumbai, Maharashtra, India',
+    'Bandra West, Mumbai, Maharashtra, India',
+    'Lower Parel, Mumbai, Maharashtra, India',
+    'Powai, Mumbai, Maharashtra, India',
+
+    'Delhi, India',
+    'New Delhi, Delhi, India',
+    'Connaught Place, New Delhi, Delhi, India',
+    'Karol Bagh, New Delhi, Delhi, India',
+    'Lajpat Nagar, New Delhi, Delhi, India',
+    'Dwarka, New Delhi, Delhi, India',
+
+    'Bangalore, Karnataka, India',
+    'Whitefield, Bangalore, Karnataka, India',
+    'Electronic City, Bangalore, Karnataka, India',
+    'Indiranagar, Bangalore, Karnataka, India',
+    'Koramangala, Bangalore, Karnataka, India',
+    'HSR Layout, Bangalore, Karnataka, India',
+
+    'Hyderabad, Telangana, India',
+    'Banjara Hills, Hyderabad, Telangana, India',
+    'Jubilee Hills, Hyderabad, Telangana, India',
+    'Gachibowli, Hyderabad, Telangana, India',
+    'Hitech City, Hyderabad, Telangana, India',
+    'Kondapur, Hyderabad, Telangana, India',
+
+    'Chennai, Tamil Nadu, India',
+    'T. Nagar, Chennai, Tamil Nadu, India',
+    'Adyar, Chennai, Tamil Nadu, India',
+    'Velachery, Chennai, Tamil Nadu, India',
+    'Nungambakkam, Chennai, Tamil Nadu, India',
+
+    'Kolkata, West Bengal, India',
+    'Salt Lake City, Kolkata, West Bengal, India',
+    'Park Street, Kolkata, West Bengal, India',
+    'Ballygunge, Kolkata, West Bengal, India',
+
+    'Pune, Maharashtra, India',
+    'Koregaon Park, Pune, Maharashtra, India',
+    'Hinjewadi, Pune, Maharashtra, India',
+    'Wakad, Pune, Maharashtra, India',
+    'Aundh, Pune, Maharashtra, India',
+
+    // Other major cities
+    'Ahmedabad, Gujarat, India',
+    'Jaipur, Rajasthan, India',
+    'Surat, Gujarat, India',
+    'Lucknow, Uttar Pradesh, India',
+    'Kanpur, Uttar Pradesh, India',
+    'Nagpur, Maharashtra, India',
+    'Indore, Madhya Pradesh, India',
+    'Thane, Maharashtra, India',
+    'Bhopal, Madhya Pradesh, India',
+    'Visakhapatnam, Andhra Pradesh, India'
+  ].slice(0, limitNum).map((location, index) => {
+    const locationParts = location.split(',');
+    const cityName = locationParts[0]?.trim();
+    const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
+    const stateName = locationParts.length > 2 ? locationParts[2]?.trim() : '';
+
+    return {
       id: `popular_${index}`,
       description: location,
-      main_text: location.split(',')[0].trim(),
-      secondary_text: location.split(',').slice(1).join(',').trim(),
-      source: 'popular'
-    }));
+      main_text: areaName ? `${areaName}, ${cityName}` : cityName,
+      secondary_text: [stateName, 'India'].filter(Boolean).join(', '),
+      source: 'popular',
+      icon: '⭐',
+      city: cityName,
+      area: areaName,
+      state: stateName,
+      structured_formatting: {
+        main_text: areaName ? `${areaName}, ${cityName}` : cityName,
+        secondary_text: [stateName, 'India'].filter(Boolean).join(', ')
+      }
+    };
+  });
 
-    return res.json({
-      results: popularCities,
-      total: popularCities.length
-    });
+  console.log(`✅ Returning ${popularCities.length} popular locations`);
 
+  return res.json({
+    results: popularCities,
+    total: popularCities.length
+  });
+
+} catch (error) {
+  console.error('Popular locations error:', error);
+  return res.status(500).json({
+    message: 'Internal server error',
+    error: error.message
+  });
+}
+};
+
+// Geocode an address using the same service as delivery creation
+exports.geocodeAddress = async (req, res) => {
+  try {
+    const { address } = req.query;
+
+    if (!address) {
+      return res.status(400).json({
+        message: 'Address parameter is required'
+      });
+    }
+
+    console.log(`🗺️ Geocoding address: ${address}`);
+
+    // Use the same geocoding function as delivery creation
+    const result = await geocodeAddress(address);
+
+    if (result) {
+      console.log(`✅ Geocoding successful: ${result.latitude}, ${result.longitude}`);
+      return res.json({
+        success: true,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        formattedAddress: result.formattedAddress,
+        placeId: result.placeId
+      });
+    } else {
+      console.log('❌ Primary geocoding failed, trying fallback');
+      // Try fallback geocoding
+      const fallbackResult = await geocodeAddressFallback(address);
+
+      if (fallbackResult) {
+        console.log(`✅ Fallback geocoding successful: ${fallbackResult.latitude}, ${fallbackResult.longitude}`);
+        return res.json({
+          success: true,
+          latitude: fallbackResult.latitude,
+          longitude: fallbackResult.longitude,
+          formattedAddress: fallbackResult.formattedAddress,
+          placeId: fallbackResult.placeId,
+          fallback: true
+        });
+      } else {
+        console.log('❌ All geocoding methods failed');
+        return res.status(404).json({
+          success: false,
+          message: 'Address not found'
+        });
+      }
+    }
   } catch (error) {
-    console.error('Popular locations error:', error);
-    return res.status(500).json({ 
-      message: 'Internal server error', 
-      error: error.message 
+    console.error('Geocoding error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };
@@ -413,7 +685,7 @@ exports.calculateRoute = async (req, res) => {
     try {
       // Use OSRM (Open Source Routing Machine) for route calculation
       const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&steps=true`;
-      
+
       const response = await axios.get(osrmUrl, {
         timeout: 10000,
         headers: {
@@ -423,7 +695,7 @@ exports.calculateRoute = async (req, res) => {
 
       if (response.data && response.data.routes && response.data.routes.length > 0) {
         const routeData = response.data.routes[0];
-        
+
         return res.json({
           success: true,
           route: {
@@ -456,7 +728,7 @@ exports.calculateRoute = async (req, res) => {
       }
     } catch (apiError) {
       console.warn('OSRM API error:', apiError.message);
-      
+
       // Fallback to straight line calculation
       const distance = calculateStraightLineDistance(start, end);
       return res.json({
