@@ -98,7 +98,7 @@ export default function AssignDelivery() {
           <option value="">Select Vehicle</option>
           {vehicles.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.model} ({v.plateNumber})
+              {v.plateNumber}{v.model ? ` - ${v.model}` : ""}{v.vehicleCode ? ` (${v.vehicleCode})` : ""}
             </option>
           ))}
         </select>

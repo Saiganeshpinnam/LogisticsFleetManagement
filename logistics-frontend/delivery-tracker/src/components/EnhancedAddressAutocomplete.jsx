@@ -28,25 +28,52 @@ const EnhancedAddressAutocomplete = ({
     setIsLoading(true);
     setError('');
 
-    // Always set some immediate fallback suggestions first with enhanced filtering
+    // Always set some immediate fallback suggestions first with enhanced filtering - now global
     const immediateFallback = [
+      // India
       'Mumbai, Maharashtra, India',
       'Andheri East, Mumbai, Maharashtra, India',
       'Andheri West, Mumbai, Maharashtra, India',
-      'Bandra West, Mumbai, Maharashtra, India',
       'Delhi, India',
       'Connaught Place, New Delhi, Delhi, India',
       'Bangalore, Karnataka, India',
       'Whitefield, Bangalore, Karnataka, India',
-      'Indiranagar, Bangalore, Karnataka, India',
       'Hyderabad, Telangana, India',
       'Banjara Hills, Hyderabad, Telangana, India',
-      'Gachibowli, Hyderabad, Telangana, India',
-      'Chennai, Tamil Nadu, India',
-      'T. Nagar, Chennai, Tamil Nadu, India',
-      'Pune, Maharashtra, India',
-      'Hinjewadi, Pune, Maharashtra, India',
-      'Koregaon Park, Pune, Maharashtra, India'
+
+      // USA
+      'New York, NY, USA',
+      'Manhattan, New York, NY, USA',
+      'Los Angeles, CA, USA',
+      'Beverly Hills, Los Angeles, CA, USA',
+      'Chicago, IL, USA',
+      'San Francisco, CA, USA',
+      'Miami, FL, USA',
+
+      // UK
+      'London, England, UK',
+      'Manchester, England, UK',
+
+      // Canada
+      'Toronto, ON, Canada',
+      'Vancouver, BC, Canada',
+
+      // Australia
+      'Sydney, NSW, Australia',
+      'Melbourne, VIC, Australia',
+
+      // UAE
+      'Dubai, UAE',
+      'Abu Dhabi, UAE',
+
+      // Singapore
+      'Singapore',
+      'Orchard Road, Singapore',
+
+      // Europe
+      'Paris, France',
+      'Berlin, Germany',
+      'Amsterdam, Netherlands'
     ]
       .filter(location => {
         const locationLower = location.toLowerCase();
@@ -56,8 +83,10 @@ const EnhancedAddressAutocomplete = ({
         const locationParts = locationLower.split(',');
         const cityName = locationParts[0]?.trim();
         const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
+        const stateName = locationParts.length > 2 ? locationParts[2]?.trim() : '';
+        const countryName = locationParts.length > 3 ? locationParts[3]?.trim() : '';
 
-        // Check for exact area matches (e.g., "Andheri" -> "Andheri East", "Andheri West")
+        // Check for exact area matches
         if (areaName && areaName.includes(searchQueryLower)) return true;
 
         // Check for partial area matches
@@ -66,9 +95,16 @@ const EnhancedAddressAutocomplete = ({
         )) return true;
 
         // Check for city matches
+        if (cityName.startsWith(searchQueryLower) || cityName.includes(searchQueryLower)) return true;
+
+        // Check for state/province matches
+        if (stateName && stateName.includes(searchQueryLower)) return true;
+
+        // Check for country matches
+        if (countryName && countryName.includes(searchQueryLower)) return true;
+
+        // Check for any part of the location
         return locationLower.includes(searchQueryLower) ||
-               cityName.startsWith(searchQueryLower) ||
-               cityName.includes(searchQueryLower) ||
                locationLower.split(',').some(part => part.trim().startsWith(searchQueryLower));
       })
       .slice(0, 8)
@@ -77,21 +113,23 @@ const EnhancedAddressAutocomplete = ({
         const cityName = locationParts[0]?.trim();
         const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
         const stateName = locationParts.length > 2 ? locationParts[2]?.trim() : '';
+        const countryName = locationParts.length > 3 ? locationParts[3]?.trim() : '';
 
         return {
           id: `immediate_${index}`,
-          description: location,
+          description: location, // Full clean address name
           main_text: areaName ? `${areaName}, ${cityName}` : cityName,
-          secondary_text: [stateName, 'India'].filter(Boolean).join(', '),
+          secondary_text: [stateName, countryName].filter(Boolean).join(', '),
           source: 'immediate',
-          icon: '⚡',
+          icon: areaName ? '🏘️' : '🏙️', // Area or city icon based on specificity
           city: cityName,
           area: areaName,
           state: stateName,
-          displayText: location,
+          country: countryName,
+          displayText: location, // Clean location name for display
           structured_formatting: {
             main_text: areaName ? `${areaName}, ${cityName}` : cityName,
-            secondary_text: [stateName, 'India'].filter(Boolean).join(', ')
+            secondary_text: [stateName, countryName].filter(Boolean).join(', ')
           }
         };
       });
@@ -100,34 +138,48 @@ const EnhancedAddressAutocomplete = ({
     setSelectedIndex(-1);
 
     try {
-      const response = await axios.get(`/locations/search?q=${encodeURIComponent(input)}&limit=15`);
+      const response = await axios.get(`/locations/search?q=${encodeURIComponent(input)}&limit=20`);
 
       if (response.data && response.data.results && response.data.results.length > 0) {
         const enhancedSuggestions = response.data.results.map(suggestion => {
+          // Determine icon based on location type and source
+          let icon = '📍'; // Default icon
+          if (suggestion.area || (suggestion.main_text && suggestion.main_text.includes(','))) {
+            icon = '🏘️'; // Area/neighborhood icon
+          } else if (suggestion.city) {
+            icon = '🏙️'; // City icon
+          } else if (suggestion.source === 'google_places') {
+            icon = '🌐'; // Google Places icon
+          } else if (suggestion.source === 'local') {
+            icon = '🏛️'; // Local database icon
+          } else if (suggestion.source === 'popular') {
+            icon = '⭐'; // Popular location icon
+          }
+
           return {
             ...suggestion,
-            // Add Google Maps-like icons based on source
-            icon: suggestion.source === 'google_places' ? '🏢' :
-                  suggestion.source === 'google_places_basic' ? '📍' :
-                  suggestion.source === 'local' ? '🏙️' :
-                  suggestion.source === 'nominatim_enhanced' ? '🗺️' :
-                  suggestion.source === 'popular' ? '⭐' :
-                  suggestion.source === 'immediate' ? '⚡' :
-                  suggestion.source === 'fallback' ? '💾' : '📍',
+            icon,
             // Enhanced display formatting - use backend structured data if available
             displayText: suggestion.structured_formatting ?
               `${suggestion.structured_formatting.main_text}, ${suggestion.structured_formatting.secondary_text}` :
               suggestion.description,
             // Use backend-provided main_text and secondary_text directly
             main_text: suggestion.structured_formatting?.main_text || suggestion.main_text,
-            secondary_text: suggestion.structured_formatting?.secondary_text || suggestion.secondary_text
+            secondary_text: suggestion.structured_formatting?.secondary_text || suggestion.secondary_text,
+            // Ensure structured_formatting is always available for consistent display
+            structured_formatting: suggestion.structured_formatting || {
+              main_text: suggestion.main_text || suggestion.description.split(',')[0]?.trim() || suggestion.description,
+              secondary_text: suggestion.secondary_text || suggestion.description.split(',').slice(1).join(',').trim() || 'India'
+            }
           };
         });
 
         setSuggestions(enhancedSuggestions);
         setSelectedIndex(-1);
+        console.log(`✅ Loaded ${enhancedSuggestions.length} location suggestions for "${input}"`);
       } else {
         // Keep the immediate fallback suggestions
+        console.log('⚠️ No API results, keeping fallback suggestions');
       }
     } catch (err) {
       console.error('Error fetching location suggestions:', err);
@@ -139,45 +191,81 @@ const EnhancedAddressAutocomplete = ({
 
   // Fetch popular locations when input is focused but empty
   const fetchPopularLocations = async () => {
-    // Show hardcoded popular locations immediately for better UX with areas
+    // Show hardcoded popular locations immediately for better UX - now global
     const immediatePopularLocations = [
+      // India
       'Mumbai, Maharashtra, India',
       'Andheri East, Mumbai, Maharashtra, India',
       'Andheri West, Mumbai, Maharashtra, India',
-      'Bandra West, Mumbai, Maharashtra, India',
       'Delhi, India',
       'Connaught Place, New Delhi, Delhi, India',
       'Bangalore, Karnataka, India',
       'Whitefield, Bangalore, Karnataka, India',
-      'Indiranagar, Bangalore, Karnataka, India',
       'Hyderabad, Telangana, India',
       'Banjara Hills, Hyderabad, Telangana, India',
-      'Gachibowli, Hyderabad, Telangana, India',
-      'Chennai, Tamil Nadu, India',
-      'T. Nagar, Chennai, Tamil Nadu, India',
-      'Pune, Maharashtra, India',
-      'Hinjewadi, Pune, Maharashtra, India',
-      'Koregaon Park, Pune, Maharashtra, India'
+
+      // USA
+      'New York, NY, USA',
+      'Manhattan, New York, NY, USA',
+      'Los Angeles, CA, USA',
+      'Beverly Hills, Los Angeles, CA, USA',
+      'Chicago, IL, USA',
+      'San Francisco, CA, USA',
+      'Miami, FL, USA',
+
+      // UK
+      'London, England, UK',
+      'Manchester, England, UK',
+      'Birmingham, England, UK',
+
+      // Canada
+      'Toronto, ON, Canada',
+      'Vancouver, BC, Canada',
+      'Montreal, QC, Canada',
+
+      // Australia
+      'Sydney, NSW, Australia',
+      'Melbourne, VIC, Australia',
+      'Brisbane, QLD, Australia',
+
+      // UAE
+      'Dubai, UAE',
+      'Abu Dhabi, UAE',
+      'Sharjah, UAE',
+
+      // Singapore
+      'Singapore',
+      'Orchard Road, Singapore',
+
+      // Europe
+      'Paris, France',
+      'Berlin, Germany',
+      'Amsterdam, Netherlands',
+      'Barcelona, Spain',
+      'Rome, Italy',
+      'Vienna, Austria'
     ].map((location, index) => {
       const locationParts = location.split(',');
       const cityName = locationParts[0]?.trim();
       const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
       const stateName = locationParts.length > 2 ? locationParts[2]?.trim() : '';
+      const countryName = locationParts.length > 3 ? locationParts[3]?.trim() : '';
 
       return {
         id: `popular_${index}`,
-        description: location,
+        description: location, // Full clean address name
         main_text: areaName ? `${areaName}, ${cityName}` : cityName,
-        secondary_text: [stateName, 'India'].filter(Boolean).join(', '),
+        secondary_text: [stateName, countryName].filter(Boolean).join(', '),
         source: 'popular',
-        icon: '⭐',
+        icon: areaName ? '🏘️' : '🏙️', // Area or city icon based on specificity
         city: cityName,
         area: areaName,
         state: stateName,
-        displayText: location,
+        country: countryName,
+        displayText: location, // Clean location name for display
         structured_formatting: {
           main_text: areaName ? `${areaName}, ${cityName}` : cityName,
-          secondary_text: [stateName, 'India'].filter(Boolean).join(', ')
+          secondary_text: [stateName, countryName].filter(Boolean).join(', ')
         }
       };
     });
@@ -215,7 +303,7 @@ const EnhancedAddressAutocomplete = ({
       debounceRef.current = setTimeout(() => {
         fetchSuggestions(inputValue);
         setShowSuggestions(true);
-      }, inputValue.length <= 2 ? 150 : 300); // Faster for short queries
+      }, inputValue.length <= 2 ? 200 : 350); // Optimized timing for better UX
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -228,8 +316,13 @@ const EnhancedAddressAutocomplete = ({
     // Set selecting state to prevent blur from hiding suggestions
     setIsSelectingSuggestion(true);
 
+    // Use structured formatting if available, otherwise use description
+    const cleanAddress = suggestion.structured_formatting ?
+      `${suggestion.structured_formatting.main_text}, ${suggestion.structured_formatting.secondary_text}` :
+      suggestion.description;
+
     // Update the parent component's state immediately
-    onChange(suggestion.description);
+    onChange(cleanAddress);
 
     // Hide suggestions
     setShowSuggestions(false);
@@ -258,14 +351,19 @@ const EnhancedAddressAutocomplete = ({
     setSelectedIndex(-1);
     setError('');
 
+    // Use structured formatting if available, otherwise use description
+    const cleanAddress = suggestion.structured_formatting ?
+      `${suggestion.structured_formatting.main_text}, ${suggestion.structured_formatting.secondary_text}` :
+      suggestion.description;
+
     // Update the input field directly first
     if (inputRef.current) {
-      inputRef.current.value = suggestion.description;
+      inputRef.current.value = cleanAddress;
     }
 
     // Then call onChange to update parent state
     if (typeof onChange === 'function') {
-      onChange(suggestion.description);
+      onChange(cleanAddress);
     }
 
     // Reset selecting state after a short delay
@@ -324,7 +422,11 @@ const EnhancedAddressAutocomplete = ({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-        handleSuggestionClick(suggestions[selectedIndex]);
+        const suggestion = suggestions[selectedIndex];
+        const cleanAddress = suggestion.structured_formatting ?
+          `${suggestion.structured_formatting.main_text}, ${suggestion.structured_formatting.secondary_text}` :
+          suggestion.description;
+        handleSuggestionClick({ ...suggestion, description: cleanAddress });
       }
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
@@ -429,17 +531,35 @@ const EnhancedAddressAutocomplete = ({
                       suggestion.source === 'immediate' ? 'bg-indigo-100 text-indigo-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {suggestion.source === 'google_places' && '📍 Google Places'}
-                      {suggestion.source === 'google_places_basic' && '📍 Google Maps'}
-                      {suggestion.source === 'local' && '🏙️ Local Cities'}
-                      {suggestion.source === 'nominatim_enhanced' && '🗺️ Map Data'}
-                      {suggestion.source === 'popular' && '⭐ Popular'}
-                      {suggestion.source === 'immediate' && '⚡ Quick Results'}
-                      {suggestion.source === 'fallback' && '💾 Cached'}
+                      {(() => {
+                        // Show the actual location/place name the user searched for
+                        // Priority: Use the main location name/area, then city, then full description
+                        const locationName = suggestion.area || 
+                                           suggestion.main_text?.split(',')[0]?.trim() ||
+                                           suggestion.city || 
+                                           suggestion.description?.split(',')[0]?.trim();
+                        
+                        const locationRegion = suggestion.country || suggestion.state;
+                        
+                        if (locationName && locationRegion) {
+                          return `${locationName}, ${locationRegion}`;
+                        }
+                        
+                        if (locationName) {
+                          return locationName;
+                        }
+                        
+                        // Fallback to structured formatting
+                        if (suggestion.structured_formatting?.main_text && suggestion.structured_formatting?.secondary_text) {
+                          return `${suggestion.structured_formatting.main_text}, ${suggestion.structured_formatting.secondary_text}`;
+                        }
+                        
+                        return suggestion.description || 'Location';
+                      })()}
                     </span>
 
-                    {/* Coordinates if available */}
-                    {suggestion.latitude && suggestion.longitude && (
+                    {/* Coordinates - hidden from user view */}
+                    {false && suggestion.latitude && suggestion.longitude && (
                       <span className="text-xs text-gray-500">
                         {suggestion.latitude.toFixed(4)}, {suggestion.longitude.toFixed(4)}
                       </span>
@@ -486,17 +606,17 @@ const EnhancedAddressAutocomplete = ({
               <span className="text-lg">💡</span>
             </div>
             <div>
-              <div className="font-medium mb-1">Try popular areas:</div>
+              <div className="font-medium mb-1">Try searching for:</div>
               <div className="text-xs text-blue-700">
                 <div className="mt-2 space-y-1 text-xs">
-                  <div>• "Andheri" → Andheri East/West, Mumbai</div>
-                  <div>• "Bandra" → Bandra West, Mumbai</div>
-                  <div>• "Whitefield" → Whitefield, Bangalore</div>
-                  <div>• "Indiranagar" → Indiranagar, Bangalore</div>
-                  <div>• "Banjara" → Banjara Hills, Hyderabad</div>
-                  <div>• "Gachibowli" → Gachibowli, Hyderabad</div>
-                  <div>• "Connaught" → Connaught Place, Delhi</div>
-                  <div>• "Hinjewadi" → Hinjewadi, Pune</div>
+                  <div>• "New York" → New York, NY, USA</div>
+                  <div>• "London" → London, England, UK</div>
+                  <div>• "Toronto" → Toronto, ON, Canada</div>
+                  <div>• "Sydney" → Sydney, NSW, Australia</div>
+                  <div>• "Dubai" → Dubai, UAE</div>
+                  <div>• "Singapore" → Singapore</div>
+                  <div>• "Paris" → Paris, France</div>
+                  <div>• "Mumbai" → Andheri, Mumbai, India</div>
                 </div>
               </div>
             </div>

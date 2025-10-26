@@ -15,6 +15,26 @@ export default function DriverDashboard() {
   const [etaHours, setEtaHours] = useState(null);
   const [pickup, setPickup] = useState(null); // [lat, lng]
   const [user, setUser] = useState(null);
+  useEffect(() => {
+    if (!selectedDelivery) {
+      setDriverLocation({ lat: 0, lng: 0 });
+      return;
+    }
+
+    const d = deliveries.find(x => x.id === selectedDelivery);
+    if (!d) return;
+
+    // Start driver at pickup location
+    if (d.pickupLatitude && d.pickupLongitude) {
+      setDriverLocation({
+        lat: parseFloat(d.pickupLatitude),
+        lng: parseFloat(d.pickupLongitude)
+      });
+    } else {
+      // Fallback to geocoding pickup address
+      setDriverLocation({ lat: 0, lng: 0 }); // Will be updated by geocoding effect
+    }
+  }, [selectedDelivery, deliveries]);
 
   useEffect(() => {
     // Load user profile information
@@ -280,8 +300,8 @@ export default function DriverDashboard() {
                   </div>
                 )}
                 <p className="text-gray-700 mb-2">
-                  <strong>Pickup:</strong> {d.pickupAddress} <br />
-                  <strong>Drop:</strong> {d.dropAddress} <br />
+                  <strong>Pickup:</strong> {d.pickupFormattedAddress || d.pickupAddress} <br />
+                  <strong>Drop:</strong> {d.dropFormattedAddress || d.dropAddress} <br />
                   <strong>Status:</strong>{" "}
                   <span
                     className={`${
@@ -300,8 +320,8 @@ export default function DriverDashboard() {
                     <>
                       <br />
                       <strong>Vehicle:</strong>{" "}
-                      <span className="capitalize text-indigo-600 font-medium">
-                        {d.vehicleType === "two_wheeler" ? "Two Wheeler" : d.vehicleType === "four_wheeler" ? "Four Wheeler" : "Six Wheeler"}
+                      <span className="text-lg">
+                        {d.vehicleType === "two_wheeler" ? "🏍️ Bike" : d.vehicleType === "four_wheeler" ? "🚗 Car" : "🚛 Truck"}
                       </span>
                     </>
                   )}
@@ -402,7 +422,7 @@ export default function DriverDashboard() {
                 <strong>Estimated time to arrive:</strong> {etaHours.toFixed(2)} hours
               </div>
             )}
-            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} pickup={pickup} />
+            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} pickup={pickup} vehicleType={(() => { const d = deliveries.find(x => x.id === selectedDelivery); return d?.vehicleType || 'four_wheeler'; })()} />
           </div>
         </div>
       )}

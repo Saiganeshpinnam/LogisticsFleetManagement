@@ -1,9 +1,9 @@
 const axios = require('axios');
 const { geocodeAddress, geocodeAddressFallback } = require('../utils/geocoding');
 
-// Comprehensive list of Indian cities, states, and popular areas
+// Comprehensive list of Indian cities, states, and popular areas with landmarks
 const indianLocations = [
-  // Major Metropolitan Cities with Areas
+  // Mumbai - Major Metropolitan City with Areas and Landmarks
   'Mumbai, Maharashtra, India',
   'Mumbai Central, Mumbai, Maharashtra, India',
   'Andheri East, Mumbai, Maharashtra, India',
@@ -28,7 +28,20 @@ const indianLocations = [
   'Thane West, Mumbai, Maharashtra, India',
   'Vikhroli, Mumbai, Maharashtra, India',
   'Worli, Mumbai, Maharashtra, India',
+  'Kurla, Mumbai, Maharashtra, India',
+  'Ghatkopar, Mumbai, Maharashtra, India',
+  'Mulund, Mumbai, Maharashtra, India',
+  'Chembur, Mumbai, Maharashtra, India',
+  'Vile Parle, Mumbai, Maharashtra, India',
+  'Khar, Mumbai, Maharashtra, India',
+  'Fort, Mumbai, Maharashtra, India',
+  'Colaba, Mumbai, Maharashtra, India',
+  'Marine Drive, Mumbai, Maharashtra, India',
+  'Nariman Point, Mumbai, Maharashtra, India',
+  'BKC, Mumbai, Maharashtra, India',
+  'Bandra Kurla Complex, Mumbai, Maharashtra, India',
 
+  // Delhi/NCR - Capital Region with Areas
   'Delhi, India',
   'New Delhi, Delhi, India',
   'Connaught Place, New Delhi, Delhi, India',
@@ -51,7 +64,19 @@ const indianLocations = [
   'Civil Lines, New Delhi, Delhi, India',
   'Old Delhi, Delhi, India',
   'Chandni Chowk, Old Delhi, Delhi, India',
+  'Saket, New Delhi, Delhi, India',
+  'Hauz Khas, New Delhi, Delhi, India',
+  'Green Park, New Delhi, Delhi, India',
+  'Nehru Place, New Delhi, Delhi, India',
+  'Vasant Kunj, New Delhi, Delhi, India',
+  'Vasant Vihar, New Delhi, Delhi, India',
+  'Greater Kailash, New Delhi, Delhi, India',
+  'Noida, Uttar Pradesh, India',
+  'Gurgaon, Haryana, India',
+  'Gurugram, Haryana, India',
+  'Faridabad, Haryana, India',
 
+  // Bangalore - IT Hub with Areas
   'Bangalore, Karnataka, India',
   'Bengaluru, Karnataka, India',
   'Whitefield, Bangalore, Karnataka, India',
@@ -71,7 +96,15 @@ const indianLocations = [
   'Ulsoor, Bangalore, Karnataka, India',
   'Cunningham Road, Bangalore, Karnataka, India',
   'Richmond Road, Bangalore, Karnataka, India',
+  'BTM Layout, Bangalore, Karnataka, India',
+  'JP Nagar, Bangalore, Karnataka, India',
+  'Banashankari, Bangalore, Karnataka, India',
+  'Yelahanka, Bangalore, Karnataka, India',
+  'Hebbal, Bangalore, Karnataka, India',
+  'Sarjapur Road, Bangalore, Karnataka, India',
+  'Bellandur, Bangalore, Karnataka, India',
 
+  // Hyderabad - Tech City with Areas and Landmarks
   'Hyderabad, Telangana, India',
   'Secunderabad, Hyderabad, Telangana, India',
   'Banjara Hills, Hyderabad, Telangana, India',
@@ -91,7 +124,19 @@ const indianLocations = [
   'Mehdipatnam, Hyderabad, Telangana, India',
   'Tolichowki, Hyderabad, Telangana, India',
   'Malakpet, Hyderabad, Telangana, India',
+  'Dilsukhnagar, Hyderabad, Telangana, India',
+  'LB Nagar, Hyderabad, Telangana, India',
+  'Uppal, Hyderabad, Telangana, India',
+  'Kompally, Hyderabad, Telangana, India',
+  'Miyapur, Hyderabad, Telangana, India',
+  'Financial District, Hyderabad, Telangana, India',
+  'Nanakramguda, Hyderabad, Telangana, India',
+  'Manikonda, Hyderabad, Telangana, India',
+  'Attapur, Hyderabad, Telangana, India',
+  'Kapil Kavuri Hub, Hyderabad, Telangana, India',
+  'Mindspace, Hyderabad, Telangana, India',
 
+  // Chennai - Cultural Capital with Areas
   'Chennai, Tamil Nadu, India',
   'T. Nagar, Chennai, Tamil Nadu, India',
   'Adyar, Chennai, Tamil Nadu, India',
@@ -111,7 +156,11 @@ const indianLocations = [
   'Medavakkam, Chennai, Tamil Nadu, India',
   'Sholinganallur, Chennai, Tamil Nadu, India',
   'Perungudi, Chennai, Tamil Nadu, India',
+  'Anna Nagar, Chennai, Tamil Nadu, India',
+  'Porur, Chennai, Tamil Nadu, India',
+  'OMR, Chennai, Tamil Nadu, India',
 
+  // Kolkata - Cultural Hub with Areas
   'Kolkata, West Bengal, India',
   'Salt Lake City, Kolkata, West Bengal, India',
   'New Town, Kolkata, West Bengal, India',
@@ -129,7 +178,10 @@ const indianLocations = [
   'Esplanade, Kolkata, West Bengal, India',
   'Dalhousie, Kolkata, West Bengal, India',
   'BBD Bagh, Kolkata, West Bengal, India',
+  'Rajarhat, Kolkata, West Bengal, India',
+  'Sector V, Kolkata, West Bengal, India',
 
+  // Pune - Educational Hub with Areas
   'Pune, Maharashtra, India',
   'Koregaon Park, Pune, Maharashtra, India',
   'Aundh, Pune, Maharashtra, India',
@@ -148,10 +200,24 @@ const indianLocations = [
   'Viman Nagar, Pune, Maharashtra, India',
   'Yerwada, Pune, Maharashtra, India',
   'Kalyaninagar, Pune, Maharashtra, India',
+  'Shivajinagar, Pune, Maharashtra, India',
+  'Kalyani Nagar, Pune, Maharashtra, India',
 
-  // Other Major Cities (keeping existing ones but adding areas for major ones)
+  // Ahmedabad - Commercial Hub
   'Ahmedabad, Gujarat, India',
+  'Satellite, Ahmedabad, Gujarat, India',
+  'Vastrapur, Ahmedabad, Gujarat, India',
+  'SG Highway, Ahmedabad, Gujarat, India',
+  'Maninagar, Ahmedabad, Gujarat, India',
+  'Navrangpura, Ahmedabad, Gujarat, India',
+
+  // Jaipur - Pink City
   'Jaipur, Rajasthan, India',
+  'Malviya Nagar, Jaipur, Rajasthan, India',
+  'Vaishali Nagar, Jaipur, Rajasthan, India',
+  'C Scheme, Jaipur, Rajasthan, India',
+
+  // Other Major Cities
   'Surat, Gujarat, India',
   'Lucknow, Uttar Pradesh, India',
   'Kanpur, Uttar Pradesh, India',
@@ -162,7 +228,21 @@ const indianLocations = [
   'Visakhapatnam, Andhra Pradesh, India',
   'Patna, Bihar, India',
   'Vadodara, Gujarat, India',
-  'Ghaziabad, Uttar Pradesh, India'
+  'Ghaziabad, Uttar Pradesh, India',
+  'Ludhiana, Punjab, India',
+  'Agra, Uttar Pradesh, India',
+  'Nashik, Maharashtra, India',
+  'Rajkot, Gujarat, India',
+  'Meerut, Uttar Pradesh, India',
+  'Varanasi, Uttar Pradesh, India',
+  'Srinagar, Jammu and Kashmir, India',
+  'Amritsar, Punjab, India',
+  'Chandigarh, India',
+  'Coimbatore, Tamil Nadu, India',
+  'Kochi, Kerala, India',
+  'Thiruvananthapuram, Kerala, India',
+  'Mysore, Karnataka, India',
+  'Mangalore, Karnataka, India'
 ];
 
 // Remove duplicates and filter out non-Indian locations
@@ -192,27 +272,47 @@ exports.searchLocations = async (req, res) => {
 
         // Enhanced matching logic for areas and neighborhoods
         const locationParts = locationLower.split(',');
-        const cityName = locationParts[0]?.trim();
-        const areaName = locationParts.length > 1 ? locationParts[1]?.trim() : '';
-
-        // Check for exact area matches (e.g., "Andheri" -> "Andheri East", "Andheri West")
-        if (areaName && areaName.includes(searchQueryLower)) return true;
-
-        // Check for partial area matches (e.g., "bandra" -> "Bandra East", "Bandra West")
-        if (areaName && searchQueryLower.split(' ').some(part =>
-          areaName.includes(part) || part.includes(areaName.split(' ')[0])
-        )) return true;
-
-        // Check for city matches (existing logic)
+        const mainPart = locationParts[0]?.trim() || ''; // First part (area or city)
+        const cityPart = locationParts.length > 2 ? locationParts[1]?.trim() : ''; // City if area exists
+        const statePart = locationParts[locationParts.length - 2]?.trim() || ''; // State
+        
+        // Split search query into words for better matching
+        const searchWords = searchQueryLower.split(' ').filter(w => w.length > 0);
+        
+        // Check for exact matches in any part
+        if (mainPart === searchQueryLower) return true;
+        if (cityPart === searchQueryLower) return true;
+        
+        // Check if main part starts with query (highest priority)
+        if (mainPart.startsWith(searchQueryLower)) return true;
+        
+        // Check if main part contains query
+        if (mainPart.includes(searchQueryLower)) return true;
+        
+        // Check if city part matches
+        if (cityPart && (cityPart.startsWith(searchQueryLower) || cityPart.includes(searchQueryLower))) return true;
+        
+        // Check if any word in search matches beginning of main part
+        if (searchWords.some(word => mainPart.startsWith(word))) return true;
+        
+        // Check if any word in search is contained in main part
+        if (searchWords.some(word => mainPart.includes(word))) return true;
+        
+        // Check for state matches
+        if (statePart && statePart.includes(searchQueryLower)) return true;
+        
+        // Fuzzy matching: check if all characters of query appear in order in location
+        let queryIndex = 0;
+        for (let i = 0; i < locationLower.length && queryIndex < searchQueryLower.length; i++) {
+          if (locationLower[i] === searchQueryLower[queryIndex]) {
+            queryIndex++;
+          }
+        }
+        if (queryIndex === searchQueryLower.length) return true;
+        
+        // Check for any part of the location containing the query
         return locationLower.includes(searchQueryLower) ||
-               cityName.startsWith(searchQueryLower) ||
-               cityName.includes(searchQueryLower) ||
-               // Check for partial matches in city names
-               locationLower.split(',').some(part => part.trim().startsWith(searchQueryLower)) ||
-               // Check for state/region matches
-               locationLower.split(',').slice(1).some(part =>
-                 part.trim().toLowerCase().includes(searchQueryLower)
-               );
+               locationParts.some(part => part.trim().startsWith(searchQueryLower));
       })
       .slice(0, Math.ceil(limitNum * 0.6)) // Take 60% from local results for better API integration
       .map((location, index) => {
@@ -628,12 +728,12 @@ exports.geocodeAddress = async (req, res) => {
         placeId: result.placeId
       });
     } else {
-      console.log('❌ Primary geocoding failed, trying fallback');
-      // Try fallback geocoding
+      console.log('❌ Primary geocoding failed, trying enhanced fallback');
+      // Try enhanced fallback geocoding
       const fallbackResult = await geocodeAddressFallback(address);
 
       if (fallbackResult) {
-        console.log(`✅ Fallback geocoding successful: ${fallbackResult.latitude}, ${fallbackResult.longitude}`);
+        console.log(`✅ Enhanced fallback geocoding successful: ${fallbackResult.latitude}, ${fallbackResult.longitude}`);
         return res.json({
           success: true,
           latitude: fallbackResult.latitude,
@@ -644,9 +744,15 @@ exports.geocodeAddress = async (req, res) => {
         });
       } else {
         console.log('❌ All geocoding methods failed');
+        // Return a more helpful error response
         return res.status(404).json({
           success: false,
-          message: 'Address not found'
+          message: `Could not find coordinates for "${address}". Please try a more specific address or check the spelling.`,
+          suggestions: [
+            'Try including city and state (e.g., "Mindspace, Hyderabad, Telangana")',
+            'Check for typos in the address',
+            'Use a more complete address with landmarks or area names'
+          ]
         });
       }
     }
@@ -654,7 +760,7 @@ exports.geocodeAddress = async (req, res) => {
     console.error('Geocoding error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: 'Internal server error during geocoding',
       error: error.message
     });
   }

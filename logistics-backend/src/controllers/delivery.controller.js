@@ -222,7 +222,20 @@ exports.getDeliveries = async (req, res) => {
         'productUrl', 'productTitle', 'productImage', 'productPrice',
         'pickupLatitude', 'pickupLongitude', 'pickupFormattedAddress', 'pickupPlaceId',
         'dropLatitude', 'dropLongitude', 'dropFormattedAddress', 'dropPlaceId',
-        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice'
+        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice',
+        'driverId', 'vehicleId'
+      ],
+      include: [
+        {
+          model: User,
+          as: 'driver',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Vehicle,
+          as: 'vehicle',
+          attributes: ['id', 'plateNumber', 'model', 'vehicleCode']
+        }
       ]
     });
     return res.json(deliveries);
@@ -279,13 +292,21 @@ exports.createRequest = async (req, res) => {
     } else {
       // Fallback to backend geocoding
       console.log('Geocoding addresses on backend...');
-      const [pickupResult, dropResult] = await Promise.all([
-        geocodeAddress(pickupAddress).catch(() => geocodeAddressFallback(pickupAddress)),
-        geocodeAddress(dropAddress).catch(() => geocodeAddressFallback(dropAddress))
-      ]);
-      
-      pickupGeocode = pickupResult;
-      dropGeocode = dropResult;
+
+      // Try primary geocoding first
+      let pickupGeocode = await geocodeAddress(pickupAddress);
+      let dropGeocode = await geocodeAddress(dropAddress);
+
+      // If primary geocoding fails, try fallback
+      if (!pickupGeocode) {
+        console.log('Primary pickup geocoding failed, trying fallback');
+        pickupGeocode = await geocodeAddressFallback(pickupAddress);
+      }
+
+      if (!dropGeocode) {
+        console.log('Primary drop geocoding failed, trying fallback');
+        dropGeocode = await geocodeAddressFallback(dropAddress);
+      }
 
       console.log('Pickup geocode:', pickupGeocode);
       console.log('Drop geocode:', dropGeocode);
@@ -300,6 +321,8 @@ exports.createRequest = async (req, res) => {
           dropGeocode.longitude
         );
         console.log('Calculated distance:', distanceKm, 'km');
+      } else {
+        console.warn('Failed to geocode one or both addresses, using default distance');
       }
     }
 
@@ -364,7 +387,20 @@ exports.createRequest = async (req, res) => {
         'productUrl', 'productTitle', 'productImage', 'productPrice',
         'pickupLatitude', 'pickupLongitude', 'pickupFormattedAddress', 'pickupPlaceId',
         'dropLatitude', 'dropLongitude', 'dropFormattedAddress', 'dropPlaceId',
-        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice'
+        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice',
+        'driverId', 'vehicleId'
+      ],
+      include: [
+        {
+          model: User,
+          as: 'driver',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Vehicle,
+          as: 'vehicle',
+          attributes: ['id', 'plateNumber', 'model', 'vehicleCode']
+        }
       ]
     });
 
@@ -397,7 +433,20 @@ exports.getMyDeliveries = async (req, res) => {
         'productUrl', 'productTitle', 'productImage', 'productPrice',
         'pickupLatitude', 'pickupLongitude', 'pickupFormattedAddress', 'pickupPlaceId',
         'dropLatitude', 'dropLongitude', 'dropFormattedAddress', 'dropPlaceId',
-        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice'
+        'logisticType', 'vehicleType', 'logisticCategory', 'distanceKm', 'unitPrice', 'totalPrice',
+        'driverId', 'vehicleId'
+      ],
+      include: [
+        {
+          model: User,
+          as: 'driver',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Vehicle,
+          as: 'vehicle',
+          attributes: ['id', 'plateNumber', 'model', 'vehicleCode']
+        }
       ]
     });
     return res.json(deliveries);

@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 async function geocodeAddress(address) {
   try {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    
+
     if (!apiKey) {
       console.warn('Google Maps API key not found, skipping geocoding');
       return null;
@@ -12,12 +12,18 @@ async function geocodeAddress(address) {
 
     const encodedAddress = encodeURIComponent(address);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
-    
-    const response = await fetch(url);
+
+    console.log(`🌐 Attempting Google Maps geocoding for: "${address}"`);
+
+    const response = await fetch(url, {
+      timeout: 8000 // 8 second timeout
+    });
+
     const data = await response.json();
-    
+
     if (data.status === 'OK' && data.results.length > 0) {
       const result = data.results[0];
+      console.log(`✅ Google Maps geocoding successful: ${result.geometry.location.lat}, ${result.geometry.location.lng}`);
       return {
         latitude: result.geometry.location.lat,
         longitude: result.geometry.location.lng,
@@ -25,11 +31,11 @@ async function geocodeAddress(address) {
         placeId: result.place_id
       };
     } else {
-      console.warn('Geocoding failed:', data.status, data.error_message);
+      console.warn('Google Maps geocoding failed:', data.status, data.error_message);
       return null;
     }
   } catch (error) {
-    console.error('Geocoding error:', error);
+    console.error('Google Maps geocoding error:', error.message);
     return null;
   }
 }
@@ -75,27 +81,77 @@ async function validateAddress(address) {
 // Fallback geocoding using OpenStreetMap Nominatim (free but rate-limited)
 async function geocodeAddressFallback(address) {
   try {
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'LogisticsFleetApp/1.0'
+    console.log(`🌍 Attempting fallback geocoding for: "${address}"`);
+
+    // Try multiple search variations to improve success rate
+    const searchQueries = [
+      `${address}, India`,
+      address.replace(/[^a-zA-Z0-9\s]/g, ' ').trim(),
+      address.split(' ').slice(0, 2).join(' '), // Try first 2 words
+      address.split(' ')[0] // Try just first word
+    ];
+
+    for (let i = 0; i < searchQueries.length; i++) {
+      const query = searchQueries[i];
+      console.log(`🔍 Trying fallback query ${i + 1}: "${query}"`);
+
+      const encodedAddress = encodeURIComponent(query);
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=5&countrycodes=in&addressdetails=1&dedupe=1`;
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'LogisticsFleetApp/1.0',
+          'Accept-Language': 'en'
+        },
+        timeout: 8000
+      });
+
+      const data = await response.json();
+      console.log(`📡 Fallback response for "${query}":`, data.length, 'results');
+
+      if (data.length > 0) {
+        // Filter for results in India and prefer exact matches
+        const indianResults = data.filter(item =>
+          item.display_name && (
+            item.display_name.includes('India') ||
+            (item.address && item.address.country_code === 'in')
+          )
+        );
+
+        if (indianResults.length > 0) {
+          // Prefer results that more closely match the original query
+          const bestMatch = indianResults.sort((a, b) => {
+            const aName = (a.display_name || '').toLowerCase();
+            const bName = (b.display_name || '').toLowerCase();
+            const queryLower = query.toLowerCase();
+
+            // Prioritize exact matches
+            if (aName.includes(queryLower) && !bName.includes(queryLower)) return -1;
+            if (bName.includes(queryLower) && !aName.includes(queryLower)) return 1;
+
+            // Prioritize city/town results over smaller areas
+            const aType = a.type || '';
+            const bType = b.type || '';
+            if (['city', 'town'].includes(aType) && !['city', 'town'].includes(bType)) return -1;
+            if (['city', 'town'].includes(bType) && !['city', 'town'].includes(aType)) return 1;
+
+            return 0;
+          })[0];
+
+          const result = {
+            latitude: parseFloat(bestMatch.lat),
+            longitude: parseFloat(bestMatch.lon),
+            formattedAddress: bestMatch.display_name,
+            placeId: bestMatch.place_id
+          };
+
+          console.log(`✅ Fallback geocoding successful: ${result.latitude}, ${result.longitude} for "${query}"`);
+          return result;
+        }
       }
-    });
-    
-    const data = await response.json();
-    
-    if (data.length > 0) {
-      const result = data[0];
-      return {
-        latitude: parseFloat(result.lat),
-        longitude: parseFloat(result.lon),
-        formattedAddress: result.display_name,
-        placeId: result.place_id
-      };
     }
-    
+
+    console.log('❌ All fallback queries failed');
     return null;
   } catch (error) {
     console.error('Fallback geocoding error:', error);

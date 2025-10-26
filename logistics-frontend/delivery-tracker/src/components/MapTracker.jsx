@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import socket from "../services/socket";
 import "leaflet/dist/leaflet.css";
@@ -16,6 +16,13 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+// Vehicle icons using emoji for simplicity and reliability
+const vehicleIcons = {
+  two_wheeler: '🏍️',
+  four_wheeler: '🚗',
+  six_wheeler: '🚛'
+};
+
 // Helper component to move map view when position updates
 function RecenterMap({ position }) {
   const map = useMap();
@@ -25,7 +32,7 @@ function RecenterMap({ position }) {
   return null;
 }
 
-export default function MapTracker({ deliveryId, driverLocation, destination, pickup }) {
+export default function MapTracker({ deliveryId, driverLocation, destination, pickup, vehicleType = 'four_wheeler' }) {
   // Use pickup coordinates as initial position if available, otherwise fallback to Hyderabad
   const getInitialPosition = () => {
     if (pickup && Array.isArray(pickup) && pickup.length === 2) {
@@ -39,7 +46,14 @@ export default function MapTracker({ deliveryId, driverLocation, destination, pi
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [routeError, setRouteError] = useState('');
   const [routeInfo, setRouteInfo] = useState(null);
-  const [lastRoutePosition, setLastRoutePosition] = useState(null);
+  const lastRoutePositionRef = useRef(null);
+
+  // Update position when pickup coordinates change
+  useEffect(() => {
+    if (pickup && Array.isArray(pickup) && pickup.length === 2) {
+      setPosition(pickup);
+    }
+  }, [pickup]);
 
   // Calculate distance between two points (Haversine formula)
   const calculateDistance = useCallback((pos1, pos2) => {
@@ -99,12 +113,12 @@ export default function MapTracker({ deliveryId, driverLocation, destination, pi
     const handleLocationUpdate = ({ lat, lng }) => {
       const newPosition = [lat, lng];
       setPosition(newPosition);
-      
+
       // Only recalculate route if driver has moved significantly (more than 0.5 km)
       if (destination && Array.isArray(destination) && destination.length === 2) {
-        if (!lastRoutePosition || calculateDistance(lastRoutePosition, newPosition) > 0.5) {
+        if (!lastRoutePositionRef.current || calculateDistance(lastRoutePositionRef.current, newPosition) > 0.5) {
           fetchRoute(newPosition, destination);
-          setLastRoutePosition(newPosition);
+          lastRoutePositionRef.current = newPosition;
         }
       }
     };
@@ -118,7 +132,7 @@ export default function MapTracker({ deliveryId, driverLocation, destination, pi
       socket.emit("unsubscribe-delivery", deliveryId);
       socket.off(channel, handleLocationUpdate);
     };
-  }, [deliveryId, destination, lastRoutePosition, calculateDistance, fetchRoute]);
+  }, [deliveryId, destination, calculateDistance, fetchRoute]);
 
   // Initial route calculation when destination changes
   useEffect(() => {
@@ -127,7 +141,7 @@ export default function MapTracker({ deliveryId, driverLocation, destination, pi
       const startPosition = (pickup && Array.isArray(pickup) && pickup.length === 2) ? pickup : position;
       fetchRoute(startPosition, destination);
     }
-  }, [destination, pickup, position, fetchRoute]);
+  }, [destination, pickup, fetchRoute]);
 
   return (
     <div className="space-y-4">
@@ -198,15 +212,18 @@ export default function MapTracker({ deliveryId, driverLocation, destination, pi
             position={position}
             icon={L.divIcon({
               className: 'custom-driver-marker',
-              html: `<div style="background-color: #10B981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-              iconSize: [20, 20],
-              iconAnchor: [10, 10]
+              html: `<div style="background-color: rgba(255,255,255,0.9); border-radius: 50%; padding: 8px; font-size: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid #10B981;">${vehicleIcons[vehicleType] || vehicleIcons.four_wheeler}</div>`,
+              iconSize: [40, 40],
+              iconAnchor: [20, 20]
             })}
           >
             <Popup>
               <div className="text-center">
                 <div className="font-semibold text-green-700">🚚 Driver Location</div>
                 <div className="text-sm text-gray-600">Real-time tracking</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Vehicle: {vehicleType === 'two_wheeler' ? 'Bike' : vehicleType === 'four_wheeler' ? 'Car' : 'Truck'}
+                </div>
               </div>
             </Popup>
           </Marker>

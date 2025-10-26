@@ -3,6 +3,7 @@ import axios from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
+import MapLocationPicker from "../components/MapLocationPicker";
 import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomplete";
 import { getUserId, getUser } from "../services/api";
 import { calculateDistance, PRICING_CONFIG } from "../utils/pricing";
@@ -22,6 +23,10 @@ export default function CustomerDashboard() {
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [pickupCoordinates, setPickupCoordinates] = useState(null);
   const [dropCoordinates, setDropCoordinates] = useState(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [selectedPickupLocation, setSelectedPickupLocation] = useState(null);
+  const [selectedDropLocation, setSelectedDropLocation] = useState(null);
   // Calculate total price based on selections (memoized to prevent unnecessary re-renders)
   const calculatePrice = useCallback((vehicleType, logisticCategory, distanceKm) => {
     const unitPrice = PRICING_CONFIG[vehicleType]?.[logisticCategory] || 0;
@@ -293,6 +298,34 @@ export default function CustomerDashboard() {
     }
   };
 
+  // Handle pickup location selection from map
+  const handlePickupLocationSelect = (location) => {
+    setSelectedPickupLocation(location);
+    setRequestForm(prev => ({
+      ...prev,
+      pickupAddress: location.name
+    }));
+    setPickupCoordinates({
+      latitude: location.lat,
+      longitude: location.lng,
+      formattedAddress: location.description
+    });
+  };
+
+  // Handle drop location selection from map
+  const handleDropLocationSelect = (location) => {
+    setSelectedDropLocation(location);
+    setRequestForm(prev => ({
+      ...prev,
+      dropAddress: location.name
+    }));
+    setDropCoordinates({
+      latitude: location.lat,
+      longitude: location.lng,
+      formattedAddress: location.description
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
@@ -331,8 +364,43 @@ export default function CustomerDashboard() {
 
         {/* Request Delivery Form */}
         <form onSubmit={submitRequest} className="mb-6 bg-white p-6 rounded-lg shadow transition-all duration-300 hover:shadow-md">
-          <h3 className="font-semibold mb-4 text-lg text-gray-800">Request a Delivery</h3>
-          
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-lg text-gray-800">Request a Delivery</h3>
+            <button
+              type="button"
+              onClick={() => setShowMapPicker(!showMapPicker)}
+              className={`px-4 py-2 rounded-md font-medium transition ${
+                showMapPicker
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {showMapPicker ? '🗺️ Hide Map' : '🗺️ Show Map Picker'}
+            </button>
+          </div>
+
+          {/* Map Location Picker */}
+          {showMapPicker && (
+            <div className="mb-6 rounded-lg overflow-hidden border border-gray-300">
+              <div className="p-4 bg-gray-50 border-b border-gray-300">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search Locations</label>
+                <input
+                  type="text"
+                  value={mapSearchQuery}
+                  onChange={(e) => setMapSearchQuery(e.target.value)}
+                  placeholder="Search for a location (e.g., Kapil Kavuri Hub, Mumbai, New York)"
+                  className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <MapLocationPicker
+                onPickupSelect={handlePickupLocationSelect}
+                onDropSelect={handleDropLocationSelect}
+                pickupLocation={selectedPickupLocation}
+                dropLocation={selectedDropLocation}
+                searchQuery={mapSearchQuery}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Pickup Address</label>
@@ -344,7 +412,7 @@ export default function CustomerDashboard() {
                     pickupAddress: value
                   }));
                 }}
-                placeholder="Enter pickup address (e.g., Andheri, Bandra, Whitefield, Delhi)"
+                placeholder="Enter pickup address (e.g., New York, London, Mumbai, Dubai)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
               />
@@ -360,7 +428,7 @@ export default function CustomerDashboard() {
                     dropAddress: value
                   }));
                 }}
-                placeholder="Enter drop address (e.g., Indiranagar, Banjara Hills, Connaught Place, Chennai)"
+                placeholder="Enter drop address (e.g., Los Angeles, Paris, Sydney, Toronto)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
               />
@@ -489,8 +557,8 @@ export default function CustomerDashboard() {
                   </div>
                 )}
                 <p className="text-gray-700">
-                  <strong>Pickup:</strong> {d.pickupAddress} <br />
-                  <strong>Drop:</strong> {d.dropAddress} <br />
+                  <strong>Pickup:</strong> {d.pickupFormattedAddress || d.pickupAddress} <br />
+                  <strong>Drop:</strong> {d.dropFormattedAddress || d.dropAddress} <br />
                   <strong>Status:</strong>{" "}
                   <span
                     className={`$
@@ -509,8 +577,8 @@ export default function CustomerDashboard() {
                     <>
                       <br />
                       <strong>Vehicle:</strong>{" "}
-                      <span className="capitalize text-indigo-600 font-medium">
-                        {d.vehicleType === "two_wheeler" ? "Two Wheeler" : d.vehicleType === "four_wheeler" ? "Four Wheeler" : "Six Wheeler"}
+                      <span className="text-lg">
+                        {d.vehicleType === "two_wheeler" ? "🏍️ Bike" : d.vehicleType === "four_wheeler" ? "🚗 Car" : "🚛 Truck"}
                       </span>
                     </>
                   )}
@@ -577,7 +645,7 @@ export default function CustomerDashboard() {
               </div>
             )}
             {/* MapTracker component shows driver moving in real-time */}
-            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} pickup={pickup} />
+            <MapTracker deliveryId={selectedDelivery} driverLocation={driverLocation} destination={destination} pickup={pickup} vehicleType={(() => { const d = deliveries.find(x => x.id === selectedDelivery); return d?.vehicleType || 'four_wheeler'; })()} />
           </div>
         )}
       </div>

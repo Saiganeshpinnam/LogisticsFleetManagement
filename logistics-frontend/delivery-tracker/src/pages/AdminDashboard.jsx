@@ -67,12 +67,7 @@ export default function AdminDashboard() {
         vehicleId: sel.vehicleId,
       });
 
-      // Clear the selection for this delivery after successful assignment
-      setAssignSelections((prev) => ({
-        ...prev,
-        [deliveryId]: { driverId: "", vehicleId: "" },
-      }));
-
+      // No need to clear selections - they should remain visible after assignment
       fetchData();
     } catch (err) {
       console.error("Assign delivery error:", err);
@@ -91,6 +86,18 @@ export default function AdminDashboard() {
       setVehicles(v.data);
       setDeliveries(d.data);
       setDrivers(drv.data);
+
+      // Initialize assignSelections with current assignments from database
+      const initialSelections = {};
+      d.data.forEach(delivery => {
+        if (delivery.driverId && delivery.vehicleId) {
+          initialSelections[delivery.id] = {
+            driverId: delivery.driverId.toString(),
+            vehicleId: delivery.vehicleId.toString()
+          };
+        }
+      });
+      setAssignSelections(initialSelections);
     } catch (err) {
       console.error("Admin fetchData error:", err);
       setError(err.response?.data?.message || `Failed to load data (${err.response?.status || ""})`);
@@ -190,7 +197,7 @@ export default function AdminDashboard() {
               <option value="">Select a vehicle</option>
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.plateNumber}{v.model ? ` - ${v.model}` : ""}
+                  {v.plateNumber}{v.model ? ` - ${v.model}` : ""}{v.vehicleCode ? ` (${v.vehicleCode})` : ""}
                 </option>
               ))}
             </select>
@@ -225,12 +232,12 @@ export default function AdminDashboard() {
               {deliveries.map((d) => (
                 <tr key={d.id} className="border-t hover:bg-blue-50 transition-colors">
                   <td className="whitespace-nowrap px-2 py-2">{d.id}</td>
-                  <td className="px-2 py-2">{d.pickupAddress}</td>
-                  <td className="px-2 py-2">{d.dropAddress}</td>
+                  <td className="px-2 py-2">{d.pickupFormattedAddress || d.pickupAddress}</td>
+                  <td className="px-2 py-2">{d.dropFormattedAddress || d.dropAddress}</td>
                   <td className="whitespace-nowrap px-2 py-2">
                     {d.vehicleType ? (
-                      <span className="capitalize text-indigo-600 font-medium">
-                        {d.vehicleType === "two_wheeler" ? "Two Wheeler" : d.vehicleType === "four_wheeler" ? "Four Wheeler" : "Six Wheeler"}
+                      <span className="text-lg">
+                        {d.vehicleType === "two_wheeler" ? "🏍️ Bike" : d.vehicleType === "four_wheeler" ? "🚗 Car" : "🚛 Truck"}
                       </span>
                     ) : (
                       <span className="text-gray-400 text-sm">—</span>
@@ -294,7 +301,9 @@ export default function AdminDashboard() {
                     >
                       <option value="">Vehicle</option>
                       {vehicles.map((v) => (
-                        <option key={v.id} value={v.id}>{v.plateNumber}{v.model ? ` - ${v.model}` : ""}</option>
+                        <option key={v.id} value={v.id}>
+                          {v.plateNumber}{v.model ? ` - ${v.model}` : ""}{v.vehicleCode ? ` (${v.vehicleCode})` : ""}
+                        </option>
                       ))}
                     </select>
                   </td>
@@ -314,9 +323,9 @@ export default function AdminDashboard() {
                     </select>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
-                    {d.status === 'pending' || d.status === 'assigned' || d.status === 'on_route' || d.status === 'delivered' ? (
+                    {d.driverId && d.vehicleId ? (
                       <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded text-sm animate-pulse">
-                        {d.status === 'pending' ? 'Assigned' : d.status === 'assigned' ? 'Assigned' : d.status === 'on_route' ? 'On Route' : 'Delivered'}
+                        Assigned
                       </span>
                     ) : (
                       <button
