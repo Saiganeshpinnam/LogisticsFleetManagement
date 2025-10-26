@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Check if we should force SQLite (for Render deployment or testing)
-const FORCE_SQLITE = process.env.FORCE_SQLITE === 'true' || process.env.NODE_ENV === 'test';
+const FORCE_SQLITE = process.env.FORCE_SQLITE === 'true' || process.env.NODE_ENV === 'test' || !process.env.DATABASE_URL && (!process.env.DB_HOST || process.env.DB_HOST === 'localhost');
 
 // Ensure database directory exists for SQLite fallback
 const dbDir = path.join(__dirname, '../../database');
@@ -32,6 +32,8 @@ if (FORCE_SQLITE) {
   console.log('Initializing PostgreSQL database connection...');
   console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
   console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('DB_HOST:', process.env.DB_HOST);
+  console.log('FORCE_SQLITE:', process.env.FORCE_SQLITE);
 
   // Use DATABASE_URL if provided (for cloud deployments or custom setup)
   if (process.env.DATABASE_URL) {

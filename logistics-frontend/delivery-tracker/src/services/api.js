@@ -14,7 +14,7 @@ const getApiUrl = () => {
                      window.location.hostname.startsWith('10.');
 
   if (isLocalhost) {
-    return "http://localhost:4001/api";
+    return "http://localhost:5000/api";
   } else {
     // Deployed environment - use the deployed backend
     return "https://logisticsfleetmanagement.onrender.com/api";
@@ -33,7 +33,7 @@ const getSocketUrl = () => {
                      window.location.hostname.startsWith('10.');
 
   if (isLocalhost) {
-    return "http://localhost:4001";
+    return "http://localhost:5000";
   } else {
     return "https://logisticsfleetmanagement.onrender.com";
   }

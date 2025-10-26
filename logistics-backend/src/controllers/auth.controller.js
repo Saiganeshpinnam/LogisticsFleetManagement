@@ -8,7 +8,7 @@ if (!User) {
   console.error('❌ User model not available - authentication will not work');
 }
 
-// Allowed roles
+// Allowed roles (proper case to match model)
 const ROLES = ['Admin', 'Driver', 'Customer'];
 
 exports.register = async (req, res) => {
@@ -22,8 +22,8 @@ exports.register = async (req, res) => {
     return res.status(400).json({ message: `Role must be one of: ${ROLES.join(', ')}` });
   }
 
-  // Normalize role to lowercase for consistency
-  const normalizedRole = role.toLowerCase();
+  // Normalize role to proper case for consistency (capitalize first letter)
+  const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
 
   // Check if User model is available
   if (!User) {
@@ -46,7 +46,7 @@ exports.register = async (req, res) => {
       name,
       email,
       password, // hashing handled by model hooks
-      role: normalizedRole // Use lowercase role
+      role: normalizedRole // Use normalized role
     });
 
     console.log('User registered successfully:', { id: user.id, email: user.email, role: user.role });
@@ -54,7 +54,7 @@ exports.register = async (req, res) => {
     // Emit socket event to notify admins of new driver registration
     try {
       const io = getIO();
-      if (normalizedRole === 'driver') {
+      if (normalizedRole === 'Driver') {
         io.to('admins').emit('drivers-updated');
         console.log('✅ Emitted drivers-updated event for new driver');
       }
@@ -145,15 +145,15 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Normalize role to lowercase for consistency
-    const normalizedRole = user.role.toLowerCase();
+    // Normalize role to proper case for consistency (capitalize first letter)
+    const normalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
 
-    // Generate JWT with lowercase role for consistency
+    // Generate JWT with proper case role for consistency
     const token = jwt.sign({
       id: user.id,
       name: user.name,
       email: user.email,
-      role: normalizedRole // Use lowercase role
+      role: normalizedRole // Use proper case role
     });
 
     console.log('Login successful for user:', email);
@@ -217,15 +217,15 @@ exports.refreshToken = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Normalize role to lowercase for consistency
-    const normalizedRole = user.role.toLowerCase();
+    // Normalize role to proper case for consistency (capitalize first letter)
+    const normalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
 
-    // Generate new token with lowercase role for consistency
+    // Generate new token with proper case role for consistency
     const newToken = jwt.sign({
       id: user.id,
       name: user.name,
       email: user.email,
-      role: normalizedRole // Use lowercase role
+      role: normalizedRole // Use proper case role
     });
 
     return res.json({

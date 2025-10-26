@@ -8,6 +8,7 @@ import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomple
 import { getUserId, getUser, getRole } from "../services/api";
 import { calculateDistance, PRICING_CONFIG } from "../utils/pricing";
 import { useNavigate } from "react-router-dom";
+import { normalizeRole } from "../utils/roleUtils";
 
 export default function CustomerDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -57,7 +58,9 @@ export default function CustomerDashboard() {
   useEffect(() => {
     // Validate user role - only customers should access this dashboard
     const userRole = getRole();
-    if (userRole !== 'customer') {
+    const normalizedRole = normalizeRole(userRole);
+
+    if (normalizedRole !== 'Customer') {
       console.warn(`🚨 Unauthorized access to CustomerDashboard by role: ${userRole}`);
       navigate('/');
       return;

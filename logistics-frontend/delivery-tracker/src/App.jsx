@@ -7,6 +7,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import AssignDelivery from "./pages/AssignDelivery";
 import { getRole, isLoggedIn } from "./services/auth";
 import Reports from "./pages/Reports";
+import { isRoleAuthorized } from "./utils/roleUtils";
 
 // ProtectedRoute component
 function ProtectedRoute({ element, roles }) {
@@ -21,7 +22,7 @@ function ProtectedRoute({ element, roles }) {
     return <Navigate to="/" replace />; // Invalid token → redirect
   }
 
-  if (roles && !roles.includes(userRole)) {
+  if (!isRoleAuthorized(userRole, roles)) {
     console.warn(`🚨 Unauthorized access attempt: User role "${userRole}" not allowed for this route. Allowed roles: ${roles.join(', ')}`);
     return <Navigate to="/" replace />; // Unauthorized role → redirect
   }

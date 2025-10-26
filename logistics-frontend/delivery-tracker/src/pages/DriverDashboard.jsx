@@ -5,6 +5,7 @@ import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
 import { useNavigate } from "react-router-dom";
+import { normalizeRole } from "../utils/roleUtils";
 
 export default function DriverDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -21,7 +22,9 @@ export default function DriverDashboard() {
   useEffect(() => {
     // Validate user role - only drivers should access this dashboard
     const userRole = getRole();
-    if (userRole !== 'driver') {
+    const normalizedRole = normalizeRole(userRole);
+
+    if (normalizedRole !== 'Driver') {
       console.warn(`🚨 Unauthorized access to DriverDashboard by role: ${userRole}`);
       navigate('/');
       return;

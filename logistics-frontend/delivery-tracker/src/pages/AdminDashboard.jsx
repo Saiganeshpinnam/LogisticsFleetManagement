@@ -5,6 +5,7 @@ import socket from "../services/socket";
 import { getUser, getRole } from "../services/api";
 import DriverAnalytics from "../components/DriverAnalytics";
 import { useNavigate } from "react-router-dom";
+import { normalizeRole } from "../utils/roleUtils";
 
 export default function AdminDashboard() {
   const [vehicles, setVehicles] = useState([]);
@@ -24,7 +25,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Validate user role - only admins should access this dashboard
     const userRole = getRole();
-    if (userRole !== 'admin') {
+    const normalizedRole = normalizeRole(userRole);
+
+    if (normalizedRole !== 'Admin') {
       console.warn(`🚨 Unauthorized access to AdminDashboard by role: ${userRole}`);
       navigate('/');
       return;
