@@ -609,14 +609,14 @@ const EnhancedAddressAutocomplete = ({
               <div className="font-medium mb-1">Try searching for:</div>
               <div className="text-xs text-blue-700">
                 <div className="mt-2 space-y-1 text-xs">
-                  <div>• "New York" → New York, NY, USA</div>
-                  <div>• "London" → London, England, UK</div>
-                  <div>• "Toronto" → Toronto, ON, Canada</div>
-                  <div>• "Sydney" → Sydney, NSW, Australia</div>
-                  <div>• "Dubai" → Dubai, UAE</div>
-                  <div>• "Singapore" → Singapore</div>
-                  <div>• "Paris" → Paris, France</div>
-                  <div>• "Mumbai" → Andheri, Mumbai, India</div>
+                  <div>• "Andheri" → Andheri East, Andheri West (Mumbai)</div>
+                  <div>• "Gachibowli" → Gachibowli, Hyderabad</div>
+                  <div>• "Whitefield" → Whitefield, Bangalore</div>
+                  <div>• "Kapil" → Kapil Kavuri Hub, Hyderabad</div>
+                  <div>• "BKC" → Bandra Kurla Complex, Mumbai</div>
+                  <div>• "Mindspace" → Mindspace, Hyderabad</div>
+                  <div>• "Financial" → Financial District, Hyderabad</div>
+                  <div>• "Hinjewadi" → Hinjewadi, Pune</div>
                 </div>
               </div>
             </div>

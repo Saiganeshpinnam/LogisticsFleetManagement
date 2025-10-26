@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api, { setToken } from "../services/api";
+import api, { setToken, removeToken } from "../services/api";
 import { getRole } from "../services/auth";
 import { useNavigate } from "react-router-dom";
 
@@ -23,11 +23,31 @@ export default function Login() {
       // Decode role (lowercased)
       const role = getRole();
 
+      // Additional role validation
+      if (!role || !['admin', 'driver', 'customer'].includes(role)) {
+        console.error(`🚨 Invalid role detected: "${role}". Logging out user.`);
+        removeToken();
+        alert("Invalid user role detected. Please contact administrator.");
+        return;
+      }
+
+      // Log successful login with role
+      console.log(`✅ User logged in successfully with role: ${role}`);
+
       // Redirect based on role
-      if (role === "admin") navigate("/admin");
-      else if (role === "driver") navigate("/driver");
-      else if (role === "customer") navigate("/customer");
-      else alert("Unknown role. Contact admin.");
+      if (role === "admin") {
+        console.log('🔄 Redirecting admin to /admin');
+        navigate("/admin");
+      } else if (role === "driver") {
+        console.log('🔄 Redirecting driver to /driver');
+        navigate("/driver");
+      } else if (role === "customer") {
+        console.log('🔄 Redirecting customer to /customer');
+        navigate("/customer");
+      } else {
+        console.error(`🚨 Unknown role: ${role}`);
+        alert("Unknown role. Contact admin.");
+      }
     } catch (err) {
       console.error("Login error:", err);
 

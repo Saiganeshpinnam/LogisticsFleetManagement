@@ -22,6 +22,9 @@ exports.register = async (req, res) => {
     return res.status(400).json({ message: `Role must be one of: ${ROLES.join(', ')}` });
   }
 
+  // Normalize role to lowercase for consistency
+  const normalizedRole = role.toLowerCase();
+
   // Check if User model is available
   if (!User) {
     console.error('❌ User model not available during registration');
@@ -38,12 +41,12 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Create user
+    // Create user with normalized role
     const user = await User.create({
       name,
       email,
       password, // hashing handled by model hooks
-      role
+      role: normalizedRole // Use lowercase role
     });
 
     console.log('User registered successfully:', { id: user.id, email: user.email, role: user.role });
@@ -51,7 +54,7 @@ exports.register = async (req, res) => {
     // Emit socket event to notify admins of new driver registration
     try {
       const io = getIO();
-      if (role === 'Driver') {
+      if (normalizedRole === 'driver') {
         io.to('admins').emit('drivers-updated');
         console.log('✅ Emitted drivers-updated event for new driver');
       }
@@ -62,12 +65,12 @@ exports.register = async (req, res) => {
 
     // Return user info (without password)
     return res.status(201).json({
-      message: 'User registered successfully',
+      message: 'Registration successful',
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: normalizedRole // Return normalized role
       }
     });
   } catch (err) {
@@ -142,8 +145,16 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT
-    const token = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role });
+    // Normalize role to lowercase for consistency
+    const normalizedRole = user.role.toLowerCase();
+
+    // Generate JWT with lowercase role for consistency
+    const token = jwt.sign({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: normalizedRole // Use lowercase role
+    });
 
     console.log('Login successful for user:', email);
     return res.json({
@@ -153,7 +164,7 @@ exports.login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: normalizedRole // Return normalized role
       },
       expiresIn: '30d' // Let frontend know token expiration
     });
@@ -206,8 +217,16 @@ exports.refreshToken = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate new token
-    const newToken = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role });
+    // Normalize role to lowercase for consistency
+    const normalizedRole = user.role.toLowerCase();
+
+    // Generate new token with lowercase role for consistency
+    const newToken = jwt.sign({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: normalizedRole // Use lowercase role
+    });
 
     return res.json({
       message: 'Token refreshed successfully',
@@ -216,7 +235,7 @@ exports.refreshToken = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: normalizedRole // Return normalized role
       },
       expiresIn: '30d'
     });

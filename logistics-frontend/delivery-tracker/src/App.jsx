@@ -10,9 +10,23 @@ import Reports from "./pages/Reports";
 
 // ProtectedRoute component
 function ProtectedRoute({ element, roles }) {
-  if (!isLoggedIn()) return <Navigate to="/" replace />; // Not logged in → redirect
+  if (!isLoggedIn()) {
+    console.warn('🚨 Unauthorized access attempt: User not logged in');
+    return <Navigate to="/" replace />; // Not logged in → redirect
+  }
+
   const userRole = getRole();
-  if (roles && !roles.includes(userRole)) return <Navigate to="/" replace />; // Unauthorized
+  if (!userRole) {
+    console.warn('🚨 Unauthorized access attempt: No role found in token');
+    return <Navigate to="/" replace />; // Invalid token → redirect
+  }
+
+  if (roles && !roles.includes(userRole)) {
+    console.warn(`🚨 Unauthorized access attempt: User role "${userRole}" not allowed for this route. Allowed roles: ${roles.join(', ')}`);
+    return <Navigate to="/" replace />; // Unauthorized role → redirect
+  }
+
+  console.log(`✅ Authorized access: User role "${userRole}" accessing allowed route`);
   return element;
 }
 

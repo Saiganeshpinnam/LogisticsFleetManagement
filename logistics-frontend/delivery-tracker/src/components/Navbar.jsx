@@ -24,9 +24,9 @@ export default function Navbar() {
 
           {/* Links */}
           <div className="hidden md:flex space-x-6">
-            {role === "Admin" && <Link to="/admin" className="hover:underline">Dashboard</Link>}
-            {role === "Driver" && <Link to="/driver" className="hover:underline">Dashboard</Link>}
-            {role === "Customer" && <Link to="/customer" className="hover:underline">Dashboard</Link>}
+            {role === "admin" && <Link to="/admin" className="hover:underline">Dashboard</Link>}
+            {role === "driver" && <Link to="/driver" className="hover:underline">Dashboard</Link>}
+            {role === "customer" && <Link to="/customer" className="hover:underline">Dashboard</Link>}
           </div>
 
           {/* User / Logout */}

@@ -9,7 +9,8 @@ export function getRole() {
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role.toLowerCase(); // ensure lowercase for consistency
+    // Handle both capitalized and lowercase roles for backward compatibility
+    return payload.role.toLowerCase();
   } catch {
     return null;
   }

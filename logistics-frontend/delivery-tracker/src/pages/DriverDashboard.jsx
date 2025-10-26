@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "../services/api";
-import { getUserId, getUser } from "../services/api";
+import { getUserId, getUser, getRole } from "../services/api";
 import socket from "../services/socket";
 import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
+import { useNavigate } from "react-router-dom";
 
 export default function DriverDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -15,6 +16,34 @@ export default function DriverDashboard() {
   const [etaHours, setEtaHours] = useState(null);
   const [pickup, setPickup] = useState(null); // [lat, lng]
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Validate user role - only drivers should access this dashboard
+    const userRole = getRole();
+    if (userRole !== 'driver') {
+      console.warn(`🚨 Unauthorized access to DriverDashboard by role: ${userRole}`);
+      navigate('/');
+      return;
+    }
+
+    console.log('✅ DriverDashboard access authorized for driver user');
+
+    // Load user profile information
+    const userInfo = getUser();
+    if (userInfo) {
+      setUser(userInfo);
+    }
+
+    loadDeliveries();
+
+    // Cleanup all intervals on unmount
+    return () => {
+      Object.values(activeIntervals).forEach(clearInterval);
+    };
+  }, [navigate, activeIntervals]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle selected delivery location updates
   useEffect(() => {
     if (!selectedDelivery) {
       setDriverLocation({ lat: 0, lng: 0 });
@@ -35,23 +64,6 @@ export default function DriverDashboard() {
       setDriverLocation({ lat: 0, lng: 0 }); // Will be updated by geocoding effect
     }
   }, [selectedDelivery, deliveries]);
-
-  useEffect(() => {
-    // Load user profile information
-    const userInfo = getUser();
-    if (userInfo) {
-      setUser(userInfo);
-    }
-
-    loadDeliveries();
-
-    // Cleanup all intervals on unmount
-    return () => {
-      Object.values(activeIntervals).forEach(clearInterval);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Subscribe to status changes for each assigned delivery
   useEffect(() => {
     if (!deliveries || deliveries.length === 0) return;
     const handler = (payload) => {

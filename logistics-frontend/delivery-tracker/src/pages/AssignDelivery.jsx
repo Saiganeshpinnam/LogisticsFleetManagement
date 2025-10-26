@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "../services/api";
+import { getRole } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function AssignDelivery() {
   const [form, setForm] = useState({
@@ -13,6 +15,7 @@ export default function AssignDelivery() {
   const [vehicles, setVehicles] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -36,7 +39,18 @@ export default function AssignDelivery() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // Validate user role - only admins should access this page
+    const userRole = getRole();
+    if (userRole !== 'admin') {
+      console.warn(`🚨 Unauthorized access to AssignDelivery by role: ${userRole}`);
+      navigate('/');
+      return;
+    }
+
+    console.log('✅ AssignDelivery access authorized for admin user');
+    fetchData();
+  }, [navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e) => {
     e.preventDefault();

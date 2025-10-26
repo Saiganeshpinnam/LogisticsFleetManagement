@@ -2,12 +2,24 @@ import { useEffect, useState } from "react";
 import axios from "../services/api";
 import Navbar from "../components/Navbar";
 import socket from "../services/socket";
+import { getRole } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Reports() {
   const [report, setReport] = useState([]);
   const [summary, setSummary] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Validate user role - only admins should access reports
+    const userRole = getRole();
+    if (userRole !== 'admin') {
+      console.warn(`🚨 Unauthorized access to Reports by role: ${userRole}`);
+      navigate('/');
+      return;
+    }
+
+    console.log('✅ Reports access authorized for admin user');
     loadReports();
 
     // Subscribe to real-time updates
@@ -18,7 +30,7 @@ export default function Reports() {
       socket.off("deliveries-updated", loadReports);
       socket.emit("unsubscribe-admins");
     };
-  }, []);
+  }, [navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReports = async () => {
     try {

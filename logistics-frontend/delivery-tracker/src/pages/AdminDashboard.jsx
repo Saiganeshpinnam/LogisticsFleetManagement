@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import axios from "../services/api";
 import Navbar from "../components/Navbar";
 import socket from "../services/socket";
-import { getUser } from "../services/api";
+import { getUser, getRole } from "../services/api";
 import DriverAnalytics from "../components/DriverAnalytics";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
   const [vehicles, setVehicles] = useState([]);
@@ -15,8 +16,19 @@ export default function AdminDashboard() {
   const [drivers, setDrivers] = useState([]);
   const [assignSelections, setAssignSelections] = useState({}); // { [deliveryId]: { driverId, vehicleId } }
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Validate user role - only admins should access this dashboard
+    const userRole = getRole();
+    if (userRole !== 'admin') {
+      console.warn(`🚨 Unauthorized access to AdminDashboard by role: ${userRole}`);
+      navigate('/');
+      return;
+    }
+
+    console.log('✅ AdminDashboard access authorized for admin user');
+
     // Load user profile information
     const userInfo = getUser();
     if (userInfo) {
@@ -24,7 +36,7 @@ export default function AdminDashboard() {
     }
 
     fetchData();
-  }, []);
+  }, [navigate]);
 
   // Subscribe to admins room to get real-time updates when customers create requests or new assignments happen
   useEffect(() => {

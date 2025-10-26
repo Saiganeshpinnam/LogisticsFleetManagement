@@ -40,6 +40,12 @@ const indianLocations = [
   'Nariman Point, Mumbai, Maharashtra, India',
   'BKC, Mumbai, Maharashtra, India',
   'Bandra Kurla Complex, Mumbai, Maharashtra, India',
+  'Churchgate, Mumbai, Maharashtra, India',
+  'CST, Mumbai, Maharashtra, India',
+  'Chhatrapati Shivaji Terminus, Mumbai, Maharashtra, India',
+  'Dahisar, Mumbai, Maharashtra, India',
+  'Mira Road, Mumbai, Maharashtra, India',
+  'Vasai, Mumbai, Maharashtra, India',
 
   // Delhi/NCR - Capital Region with Areas
   'Delhi, India',
@@ -71,10 +77,13 @@ const indianLocations = [
   'Vasant Kunj, New Delhi, Delhi, India',
   'Vasant Vihar, New Delhi, Delhi, India',
   'Greater Kailash, New Delhi, Delhi, India',
+  'Lajpat Nagar, New Delhi, Delhi, India',
+  'Malviya Nagar, New Delhi, Delhi, India',
   'Noida, Uttar Pradesh, India',
   'Gurgaon, Haryana, India',
   'Gurugram, Haryana, India',
   'Faridabad, Haryana, India',
+  'Ghaziabad, Uttar Pradesh, India',
 
   // Bangalore - IT Hub with Areas
   'Bangalore, Karnataka, India',
@@ -103,6 +112,10 @@ const indianLocations = [
   'Hebbal, Bangalore, Karnataka, India',
   'Sarjapur Road, Bangalore, Karnataka, India',
   'Bellandur, Bangalore, Karnataka, India',
+  'Varthur, Bangalore, Karnataka, India',
+  'Hoodi, Bangalore, Karnataka, India',
+  'Mahadevapura, Bangalore, Karnataka, India',
+  'Bommanahalli, Bangalore, Karnataka, India',
 
   // Hyderabad - Tech City with Areas and Landmarks
   'Hyderabad, Telangana, India',
@@ -135,6 +148,14 @@ const indianLocations = [
   'Attapur, Hyderabad, Telangana, India',
   'Kapil Kavuri Hub, Hyderabad, Telangana, India',
   'Mindspace, Hyderabad, Telangana, India',
+  'Raidurgam, Hyderabad, Telangana, India',
+  'Kokapet, Hyderabad, Telangana, India',
+  'Narsingi, Hyderabad, Telangana, India',
+  'Shaikpet, Hyderabad, Telangana, India',
+  'Bharat Heavy Electricals Limited, Hyderabad, Telangana, India',
+  'BHEL, Hyderabad, Telangana, India',
+  'HITEC City, Hyderabad, Telangana, India',
+  'Cyber Towers, Hyderabad, Telangana, India',
 
   // Chennai - Cultural Capital with Areas
   'Chennai, Tamil Nadu, India',
@@ -159,6 +180,10 @@ const indianLocations = [
   'Anna Nagar, Chennai, Tamil Nadu, India',
   'Porur, Chennai, Tamil Nadu, India',
   'OMR, Chennai, Tamil Nadu, India',
+  'Siruseri, Chennai, Tamil Nadu, India',
+  'Navalur, Chennai, Tamil Nadu, India',
+  'Thoraipakkam, Chennai, Tamil Nadu, India',
+  'Karapakkam, Chennai, Tamil Nadu, India',
 
   // Kolkata - Cultural Hub with Areas
   'Kolkata, West Bengal, India',
@@ -180,6 +205,7 @@ const indianLocations = [
   'BBD Bagh, Kolkata, West Bengal, India',
   'Rajarhat, Kolkata, West Bengal, India',
   'Sector V, Kolkata, West Bengal, India',
+  'EM Bypass, Kolkata, West Bengal, India',
 
   // Pune - Educational Hub with Areas
   'Pune, Maharashtra, India',
@@ -202,6 +228,9 @@ const indianLocations = [
   'Kalyaninagar, Pune, Maharashtra, India',
   'Shivajinagar, Pune, Maharashtra, India',
   'Kalyani Nagar, Pune, Maharashtra, India',
+  'Pune University, Pune, Maharashtra, India',
+  'FC Road, Pune, Maharashtra, India',
+  'JM Road, Pune, Maharashtra, India',
 
   // Ahmedabad - Commercial Hub
   'Ahmedabad, Gujarat, India',
@@ -210,12 +239,18 @@ const indianLocations = [
   'SG Highway, Ahmedabad, Gujarat, India',
   'Maninagar, Ahmedabad, Gujarat, India',
   'Navrangpura, Ahmedabad, Gujarat, India',
+  'Bopal, Ahmedabad, Gujarat, India',
+  'Thaltej, Ahmedabad, Gujarat, India',
+  'Prahlad Nagar, Ahmedabad, Gujarat, India',
+  'Bodakdev, Ahmedabad, Gujarat, India',
 
   // Jaipur - Pink City
   'Jaipur, Rajasthan, India',
   'Malviya Nagar, Jaipur, Rajasthan, India',
   'Vaishali Nagar, Jaipur, Rajasthan, India',
   'C Scheme, Jaipur, Rajasthan, India',
+  'Mansarovar, Jaipur, Rajasthan, India',
+  'Tonk Road, Jaipur, Rajasthan, India',
 
   // Other Major Cities
   'Surat, Gujarat, India',
@@ -242,7 +277,21 @@ const indianLocations = [
   'Kochi, Kerala, India',
   'Thiruvananthapuram, Kerala, India',
   'Mysore, Karnataka, India',
-  'Mangalore, Karnataka, India'
+  'Mangalore, Karnataka, India',
+  'Hubli, Karnataka, India',
+  'Dharwad, Karnataka, India',
+  'Belgaum, Karnataka, India',
+  'Gulbarga, Karnataka, India',
+  'Bidar, Karnataka, India',
+  'Kurnool, Andhra Pradesh, India',
+  'Guntur, Andhra Pradesh, India',
+  'Vijayawada, Andhra Pradesh, India',
+  'Nellore, Andhra Pradesh, India',
+  'Tirupati, Andhra Pradesh, India',
+  'Warangal, Telangana, India',
+  'Nizamabad, Telangana, India',
+  'Karimnagar, Telangana, India',
+  'Ramagundam, Telangana, India'
 ];
 
 // Remove duplicates and filter out non-Indian locations
@@ -275,33 +324,33 @@ exports.searchLocations = async (req, res) => {
         const mainPart = locationParts[0]?.trim() || ''; // First part (area or city)
         const cityPart = locationParts.length > 2 ? locationParts[1]?.trim() : ''; // City if area exists
         const statePart = locationParts[locationParts.length - 2]?.trim() || ''; // State
-        
+
         // Split search query into words for better matching
         const searchWords = searchQueryLower.split(' ').filter(w => w.length > 0);
-        
-        // Check for exact matches in any part
+
+        // Check for exact matches in any part (highest priority)
         if (mainPart === searchQueryLower) return true;
         if (cityPart === searchQueryLower) return true;
-        
-        // Check if main part starts with query (highest priority)
+
+        // Check if main part starts with query (highest priority for Google Maps-like experience)
         if (mainPart.startsWith(searchQueryLower)) return true;
-        
+
         // Check if main part contains query
         if (mainPart.includes(searchQueryLower)) return true;
-        
+
         // Check if city part matches
         if (cityPart && (cityPart.startsWith(searchQueryLower) || cityPart.includes(searchQueryLower))) return true;
-        
+
         // Check if any word in search matches beginning of main part
         if (searchWords.some(word => mainPart.startsWith(word))) return true;
-        
+
         // Check if any word in search is contained in main part
         if (searchWords.some(word => mainPart.includes(word))) return true;
-        
+
         // Check for state matches
         if (statePart && statePart.includes(searchQueryLower)) return true;
-        
-        // Fuzzy matching: check if all characters of query appear in order in location
+
+        // Advanced fuzzy matching: check if all characters of query appear in order in location
         let queryIndex = 0;
         for (let i = 0; i < locationLower.length && queryIndex < searchQueryLower.length; i++) {
           if (locationLower[i] === searchQueryLower[queryIndex]) {
@@ -309,10 +358,41 @@ exports.searchLocations = async (req, res) => {
           }
         }
         if (queryIndex === searchQueryLower.length) return true;
-        
-        // Check for any part of the location containing the query
-        return locationLower.includes(searchQueryLower) ||
-               locationParts.some(part => part.trim().startsWith(searchQueryLower));
+
+        // Check if query matches any significant part of the location (like landmarks)
+        if (locationParts.some(part => {
+          const trimmedPart = part.trim();
+          return trimmedPart.startsWith(searchQueryLower) ||
+                 trimmedPart.includes(searchQueryLower) ||
+                 searchWords.some(word => trimmedPart.startsWith(word) || trimmedPart.includes(word));
+        })) return true;
+
+        // Check for common abbreviations and variations
+        const commonMappings = {
+          'bkc': 'bandra kurla complex',
+          'cst': 'chhatrapati shivaji terminus',
+          'bhel': 'bharat heavy electricals limited',
+          'hitec': 'hitech city',
+          'cyber': 'cyber towers',
+          'financial': 'financial district',
+          'omr': 'old mahabalipuram road',
+          'em': 'em bypass',
+          'sector': 'sector v',
+          'fc': 'fc road',
+          'jm': 'jm road',
+          'sg': 'sg highway'
+        };
+
+        // Check if query matches any abbreviation
+        for (const [abbr, full] of Object.entries(commonMappings)) {
+          if (searchQueryLower.includes(abbr) || searchQueryLower.includes(full.split(' ').join(''))) {
+            if (locationLower.includes(full) || locationLower.includes(abbr)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
       })
       .slice(0, Math.ceil(limitNum * 0.6)) // Take 60% from local results for better API integration
       .map((location, index) => {

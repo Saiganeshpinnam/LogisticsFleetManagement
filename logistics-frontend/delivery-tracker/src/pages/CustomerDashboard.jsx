@@ -5,8 +5,9 @@ import Navbar from "../components/Navbar";
 import MapTracker from "../components/MapTracker";
 import MapLocationPicker from "../components/MapLocationPicker";
 import EnhancedAddressAutocomplete from "../components/EnhancedAddressAutocomplete";
-import { getUserId, getUser } from "../services/api";
+import { getUserId, getUser, getRole } from "../services/api";
 import { calculateDistance, PRICING_CONFIG } from "../utils/pricing";
+import { useNavigate } from "react-router-dom";
 
 export default function CustomerDashboard() {
   const [deliveries, setDeliveries] = useState([]);
@@ -27,6 +28,7 @@ export default function CustomerDashboard() {
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [selectedPickupLocation, setSelectedPickupLocation] = useState(null);
   const [selectedDropLocation, setSelectedDropLocation] = useState(null);
+  const navigate = useNavigate();
   // Calculate total price based on selections (memoized to prevent unnecessary re-renders)
   const calculatePrice = useCallback((vehicleType, logisticCategory, distanceKm) => {
     const unitPrice = PRICING_CONFIG[vehicleType]?.[logisticCategory] || 0;
@@ -53,6 +55,16 @@ export default function CustomerDashboard() {
   };
 
   useEffect(() => {
+    // Validate user role - only customers should access this dashboard
+    const userRole = getRole();
+    if (userRole !== 'customer') {
+      console.warn(`🚨 Unauthorized access to CustomerDashboard by role: ${userRole}`);
+      navigate('/');
+      return;
+    }
+
+    console.log('✅ CustomerDashboard access authorized for customer user');
+
     // Load user profile information
     const userInfo = getUser();
     if (userInfo) {
@@ -60,7 +72,7 @@ export default function CustomerDashboard() {
     }
 
     loadDeliveries();
-  }, []);
+  }, [navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate price whenever relevant fields change
   useEffect(() => {
@@ -265,9 +277,40 @@ export default function CustomerDashboard() {
   const submitRequest = async (e) => {
     e.preventDefault();
     setError("");
+
     try {
       const { pickupAddress, dropAddress, productUrl, logisticType, vehicleType, logisticCategory } = requestForm;
-      
+
+      // Enhanced validation for addresses
+      if (!pickupAddress || pickupAddress.trim().length < 3) {
+        setError("Please enter a valid pickup address (minimum 3 characters)");
+        return;
+      }
+
+      if (!dropAddress || dropAddress.trim().length < 3) {
+        setError("Please enter a valid drop address (minimum 3 characters)");
+        return;
+      }
+
+      if (pickupAddress.trim() === dropAddress.trim()) {
+        setError("Pickup and drop addresses cannot be the same");
+        return;
+      }
+
+      // Check if addresses have sufficient detail
+      const pickupWords = pickupAddress.trim().split(',').length;
+      const dropWords = dropAddress.trim().split(',').length;
+
+      if (pickupWords < 2) {
+        setError("Please select a more specific pickup address (include area/city)");
+        return;
+      }
+
+      if (dropWords < 2) {
+        setError("Please select a more specific drop address (include area/city)");
+        return;
+      }
+
       // Send the frontend-calculated coordinates and distance to ensure consistency
       const requestData = {
         pickupAddress,
@@ -285,7 +328,7 @@ export default function CustomerDashboard() {
         dropLongitude: dropCoordinates?.longitude,
         dropFormattedAddress: dropCoordinates?.formattedAddress
       };
-      
+
       await axios.post('/deliveries/request', requestData);
       setRequestForm({ pickupAddress: "", dropAddress: "", productUrl: "", logisticType: "standard", vehicleType: "two_wheeler", logisticCategory: "goods_shifting" });
       setPickupCoordinates(null);
@@ -412,7 +455,7 @@ export default function CustomerDashboard() {
                     pickupAddress: value
                   }));
                 }}
-                placeholder="Enter pickup address (e.g., New York, London, Mumbai, Dubai)"
+                placeholder="Enter pickup address (e.g., Andheri East, Mumbai, Kapil Kavuri Hub, Hyderabad)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
               />
@@ -428,7 +471,7 @@ export default function CustomerDashboard() {
                     dropAddress: value
                   }));
                 }}
-                placeholder="Enter drop address (e.g., Los Angeles, Paris, Sydney, Toronto)"
+                placeholder="Enter drop address (e.g., Whitefield, Bangalore, Mindspace, Hyderabad)"
                 className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 required
               />
