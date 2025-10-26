@@ -16,6 +16,9 @@ export default function AdminDashboard() {
   const [drivers, setDrivers] = useState([]);
   const [assignSelections, setAssignSelections] = useState({}); // { [deliveryId]: { driverId, vehicleId } }
   const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +40,44 @@ export default function AdminDashboard() {
 
     fetchData();
   }, [navigate]);
+
+  // Filter deliveries based on search and filters
+  const filteredDeliveries = deliveries.filter(delivery => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        delivery.id.toString().includes(query) ||
+        (delivery.pickupAddress && delivery.pickupAddress.toLowerCase().includes(query)) ||
+        (delivery.dropAddress && delivery.dropAddress.toLowerCase().includes(query)) ||
+        (delivery.productTitle && delivery.productTitle.toLowerCase().includes(query));
+
+      if (!matchesSearch) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== "All Status") {
+      const statusMap = {
+        'Unassigned': 'unassigned',
+        'Assigned': 'assigned',
+        'On Route': 'on_route',
+        'Delivered': 'delivered'
+      };
+      if (delivery.status !== statusMap[statusFilter]) return false;
+    }
+
+    // Category filter
+    if (categoryFilter !== "All Categories") {
+      const categoryMap = {
+        'Goods Shifting': 'goods_shifting',
+        'Home Shifting': 'home_shifting',
+        'Materials Shifting': 'materials_shifting'
+      };
+      if (delivery.logisticCategory !== categoryMap[categoryFilter]) return false;
+    }
+
+    return true;
+  });
 
   // Subscribe to admins room to get real-time updates when customers create requests or new assignments happen
   useEffect(() => {
@@ -216,144 +257,399 @@ export default function AdminDashboard() {
           </div>
         </form>
 
-        {/* Create Delivery form removed per new flow */}
+        {/* Deliveries List - Enhanced Real-World Styling */}
+        <div className="mt-8 bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl shadow-lg border border-gray-100">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">📦 All Deliveries</h3>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  Total: {deliveries.length} deliveries
+                </span>
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  Vehicles: {vehicles.length} available
+                </span>
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Drivers: {drivers.length} active
+                </span>
+                {(searchQuery || statusFilter !== "All Status" || categoryFilter !== "All Categories") && (
+                  <span className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    Showing: {filteredDeliveries.length} filtered
+                  </span>
+                )}
+              </div>
+            </div>
 
-        {/* Deliveries List */}
-        <div className="mt-6 bg-white p-4 rounded shadow transition-all duration-300 hover:shadow-md">
-          <h3 className="font-semibold mb-2">All Deliveries</h3>
-          <div className="text-sm text-gray-500 mb-2">Vehicles loaded: {vehicles.length}</div>
-          <div className="overflow-x-auto overflow-y-visible">
-          <table className="min-w-[960px] md:min-w-full w-full border">
-            <thead className="bg-blue-100">
-              <tr>
-                <th className="whitespace-nowrap px-2 py-2 text-left">ID</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Pickup</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Drop</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Vehicle</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Category</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Distance</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Unit Price</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Total Price</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Product</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Status</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Driver</th>
-                <th className="whitespace-nowrap px-2 py-2 text-left">Assign</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deliveries.map((d) => (
-                <tr key={d.id} className="border-t hover:bg-blue-50 transition-colors">
-                  <td className="whitespace-nowrap px-2 py-2">{d.id}</td>
-                  <td className="px-2 py-2">{d.pickupFormattedAddress || d.pickupAddress}</td>
-                  <td className="px-2 py-2">{d.dropFormattedAddress || d.dropAddress}</td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    {d.vehicleType ? (
-                      <span className="text-lg">
-                        {d.vehicleType === "two_wheeler" ? "🏍️ Bike" : d.vehicleType === "four_wheeler" ? "🚗 Car" : "🚛 Truck"}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    {d.logisticCategory ? (
-                      <span className="capitalize text-purple-600 font-medium">
-                        {d.logisticCategory === "home_shifting" ? "Home Shifting" : d.logisticCategory === "goods_shifting" ? "Goods Shifting" : d.logisticCategory === "materials_shifting" ? "Materials Shifting" : "Other"}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    {d.distanceKm ? `${parseFloat(d.distanceKm).toFixed(1)} km` : <span className="text-gray-400 text-sm">—</span>}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    {d.unitPrice ? `₹${parseFloat(d.unitPrice).toFixed(2)}` : <span className="text-gray-400 text-sm">—</span>}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    {d.totalPrice ? `₹${parseFloat(d.totalPrice).toFixed(2)}` : <span className="text-gray-400 text-sm">—</span>}
-                  </td>
-                  <td>
-                    {d.productUrl ? (
+            {/* Search and Filter Controls */}
+            <div className="flex items-center gap-3 mt-4 lg:mt-0">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search deliveries..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                </div>
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+              >
+                <option>All Status</option>
+                <option>Unassigned</option>
+                <option>Assigned</option>
+                <option>On Route</option>
+                <option>Delivered</option>
+              </select>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+              >
+                <option>All Categories</option>
+                <option>Goods Shifting</option>
+                <option>Home Shifting</option>
+                <option>Materials Shifting</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Quick Stats Overview */}
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600 mb-1">Total Deliveries</p>
+                  <p className="text-2xl font-bold text-blue-900">{deliveries.length}</p>
+                </div>
+                <div className="p-2 bg-blue-500 rounded-full">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-600 mb-1">Available Vehicles</p>
+                  <p className="text-2xl font-bold text-green-900">{vehicles.length}</p>
+                </div>
+                <div className="p-2 bg-green-500 rounded-full">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-600 mb-1">Active Drivers</p>
+                  <p className="text-2xl font-bold text-purple-900">{drivers.length}</p>
+                </div>
+                <div className="p-2 bg-purple-500 rounded-full">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-600 mb-1">On Route</p>
+                  <p className="text-2xl font-bold text-orange-900">
+                    {deliveries.filter(d => d.status === 'on_route').length}
+                  </p>
+                </div>
+                <div className="p-2 bg-orange-500 rounded-full">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          {filteredDeliveries.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {deliveries.length === 0 ? 'No deliveries yet' : 'No deliveries match your filters'}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {deliveries.length === 0
+                  ? 'Customer requests will appear here once they create delivery orders.'
+                  : 'Try adjusting your search terms or filters to find what you\'re looking for.'
+                }
+              </p>
+              {(searchQuery || statusFilter !== "All Status" || categoryFilter !== "All Categories") && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("All Status");
+                    setCategoryFilter("All Categories");
+                  }}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredDeliveries.map((delivery) => (
+                <div
+                  key={delivery.id}
+                  className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:border-blue-300 transition-all duration-300 overflow-hidden group cursor-pointer"
+                  onClick={() => {
+                    // Optional: Add click to expand functionality later
+                  }}
+                >
+                  {/* Card Header */}
+                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 group-hover:from-blue-700 group-hover:to-blue-800 transition-colors duration-300">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {d.productImage && (
-                          <img src={d.productImage} alt={d.productTitle || 'Product'} className="w-10 h-10 object-cover rounded" />
+                        <span className="text-white font-bold text-lg">#{delivery.id}</span>
+                        {delivery.productImage && (
+                          <img
+                            src={delivery.productImage}
+                            alt={delivery.productTitle || 'Product'}
+                            className="w-8 h-8 object-cover rounded-lg border-2 border-white shadow-sm"
+                          />
                         )}
-                        <div className="text-left max-w-[220px] truncate">
-                          <a className="text-blue-600 hover:underline" href={d.productUrl} target="_blank" rel="noreferrer">
-                            {d.productTitle || 'View product'}
-                          </a>
-                          {d.productPrice && <div className="text-xs text-gray-700">{d.productPrice}</div>}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shadow-sm ${
+                          delivery.status === 'unassigned' ? 'bg-gray-100 text-gray-800' :
+                          delivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          delivery.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                          delivery.status === 'on_route' ? 'bg-orange-100 text-orange-800' :
+                          delivery.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {delivery.status === 'on_route' ? '🚚 On Route' :
+                           delivery.status === 'delivered' ? '✅ Delivered' :
+                           delivery.status === 'assigned' ? '📋 Assigned' :
+                           delivery.status === 'pending' ? '⏳ Pending' :
+                           delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-4 space-y-4 group-hover:bg-gray-50 transition-colors duration-300">
+                    {/* Route Information */}
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors duration-300">
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors duration-300">
+                            From: {delivery.pickupFormattedAddress || delivery.pickupAddress}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                            <span className="text-xs text-gray-500">Pickup Location</span>
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">—</span>
+
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center group-hover:bg-red-200 transition-colors duration-300">
+                          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors duration-300">
+                            To: {delivery.dropFormattedAddress || delivery.dropAddress}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                            <span className="text-xs text-gray-500">Drop Location</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delivery Details */}
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Vehicle Type</p>
+                        <div className="flex items-center gap-1">
+                          {delivery.vehicleType === "two_wheeler" ? "🏍️" : delivery.vehicleType === "four_wheeler" ? "🚗" : "🚛"}
+                          <span className="text-sm font-medium text-gray-900">
+                            {delivery.vehicleType === "two_wheeler" ? "Bike" : delivery.vehicleType === "four_wheeler" ? "Car" : "Truck"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Category</p>
+                        <span className="text-sm font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                          {delivery.logisticCategory === "home_shifting" ? "🏠 Home" :
+                           delivery.logisticCategory === "goods_shifting" ? "📦 Goods" :
+                           delivery.logisticCategory === "materials_shifting" ? "🏗️ Materials" : "Other"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Distance</p>
+                        <span className="text-sm font-medium text-gray-900">
+                          {delivery.distanceKm ? `${parseFloat(delivery.distanceKm).toFixed(1)} km` : '—'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Total Price</p>
+                        <span className="text-sm font-bold text-green-600">
+                          {delivery.totalPrice ? `₹${parseFloat(delivery.totalPrice).toFixed(2)}` : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Product Information */}
+                    {delivery.productUrl && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-shrink-0">
+                            {delivery.productImage ? (
+                              <img src={delivery.productImage} alt={delivery.productTitle || 'Product'} className="w-10 h-10 object-cover rounded-lg" />
+                            ) : (
+                              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={delivery.productUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium truncate block"
+                            >
+                              {delivery.productTitle || 'View Product'}
+                            </a>
+                            {delivery.productPrice && (
+                              <p className="text-xs text-gray-500">{delivery.productPrice}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    <span className={`inline-block px-3 py-1 rounded text-sm font-medium ${
-                      d.status === 'unassigned' ? 'bg-gray-100 text-gray-700' :
-                      d.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      d.status === 'assigned' ? 'bg-blue-100 text-blue-700' :
-                      d.status === 'on_route' ? 'bg-orange-100 text-orange-700' :
-                      d.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {d.status === 'on_route' ? 'On Route' : d.status.charAt(0).toUpperCase() + d.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 overflow-visible">
-                    <select
-                      className="relative z-20 border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-40 md:w-48 bg-white"
-                      value={assignSelections[d.id]?.vehicleId || ""}
-                      onChange={(e) => setAssignSelections((prev) => ({
-                        ...prev,
-                        [d.id]: { ...(prev[d.id]||{}), vehicleId: e.target.value },
-                      }))}
-                    >
-                      <option value="">Vehicle</option>
-                      {vehicles.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.plateNumber}{v.model ? ` - ${v.model}` : ""}{v.vehicleCode ? ` (${v.vehicleCode})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-2 py-2 overflow-visible">
-                    <select
-                      className="relative z-20 border p-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-40 md:w-48 bg-white"
-                      value={assignSelections[d.id]?.driverId || ""}
-                      onChange={(e) => setAssignSelections((prev) => ({
-                        ...prev,
-                        [d.id]: { ...(prev[d.id]||{}), driverId: e.target.value },
-                      }))}
-                    >
-                      <option value="">Driver</option>
-                      {drivers.map((u) => (
-                        <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    {d.driverId && d.vehicleId ? (
-                      <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded text-sm animate-pulse">
-                        Assigned
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => assignDelivery(d.id)}
-                        className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded disabled:opacity-50 transition-transform duration-200 hover:bg-blue-700 active:scale-95"
-                        disabled={d.status !== 'unassigned' || !(assignSelections[d.id]?.driverId && assignSelections[d.id]?.vehicleId)}
-                      >
-                        Assign
-                      </button>
-                    )}
-                  </td>
-                </tr>
+
+                    {/* Assignment Controls */}
+                    <div className="pt-3 border-t border-gray-100">
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          className="text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          value={assignSelections[delivery.id]?.vehicleId || ""}
+                          onChange={(e) => setAssignSelections((prev) => ({
+                            ...prev,
+                            [delivery.id]: { ...(prev[delivery.id]||{}), vehicleId: e.target.value },
+                          }))}
+                        >
+                          <option value="">Select Vehicle</option>
+                          {vehicles.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {v.plateNumber}{v.model ? ` (${v.model})` : ""}
+                            </option>
+                          ))}
+                        </select>
+
+                        <select
+                          className="text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          value={assignSelections[delivery.id]?.driverId || ""}
+                          onChange={(e) => setAssignSelections((prev) => ({
+                            ...prev,
+                            [delivery.id]: { ...(prev[delivery.id]||{}), driverId: e.target.value },
+                          }))}
+                        >
+                          <option value="">Select Driver</option>
+                          {drivers.map((u) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="mt-3 flex justify-between items-center">
+                        <div className="text-xs text-gray-500">
+                          {delivery.driverId && delivery.vehicleId ? (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                              </svg>
+                              Ready to assign
+                            </span>
+                          ) : (
+                            'Select driver & vehicle'
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => assignDelivery(delivery.id)}
+                          disabled={delivery.status !== 'unassigned' || !(assignSelections[delivery.id]?.driverId && assignSelections[delivery.id]?.vehicleId)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                            delivery.status !== 'unassigned' || !(assignSelections[delivery.id]?.driverId && assignSelections[delivery.id]?.vehicleId)
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm hover:shadow-md'
+                          }`}
+                        >
+                          {delivery.driverId && delivery.vehicleId ? '🚀 Assign Now' : 'Select First'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-          </div>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredDeliveries.length > 0 && (
+            <div className="mt-8 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Showing 1-{Math.min(filteredDeliveries.length, 12)} of {filteredDeliveries.length} filtered deliveries
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Previous
+                </button>
+                <span className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg">1</span>
+                <button className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
