@@ -70,7 +70,7 @@ exports.register = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: normalizedRole // Return normalized role
+        role: normalizedRole.toLowerCase() // Return lowercase role
       }
     });
   } catch (err) {
@@ -148,12 +148,12 @@ exports.login = async (req, res) => {
     // Normalize role to proper case for consistency (capitalize first letter)
     const normalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
 
-    // Generate JWT with proper case role for consistency
+    // Generate JWT with lowercase role for consistency
     const token = jwt.sign({
       id: user.id,
       name: user.name,
       email: user.email,
-      role: normalizedRole // Use proper case role
+      role: normalizedRole.toLowerCase() // Use lowercase role
     });
 
     console.log('Login successful for user:', email);
@@ -164,7 +164,7 @@ exports.login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: normalizedRole // Return normalized role
+        role: normalizedRole.toLowerCase() // Return lowercase role
       },
       expiresIn: '30d' // Let frontend know token expiration
     });
@@ -220,12 +220,12 @@ exports.refreshToken = async (req, res) => {
     // Normalize role to proper case for consistency (capitalize first letter)
     const normalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
 
-    // Generate new token with proper case role for consistency
+    // Generate new token with lowercase role for consistency
     const newToken = jwt.sign({
       id: user.id,
       name: user.name,
       email: user.email,
-      role: normalizedRole // Use proper case role
+      role: normalizedRole.toLowerCase() // Use lowercase role
     });
 
     return res.json({
@@ -235,7 +235,7 @@ exports.refreshToken = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: normalizedRole // Return normalized role
+        role: normalizedRole.toLowerCase() // Return lowercase role
       },
       expiresIn: '30d'
     });
