@@ -598,14 +598,21 @@ export default function AdminDashboard() {
                         >
                           <option value="">Select Driver</option>
                           {drivers.map((u) => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
+                            <option key={u.id} value={u.id}>{u.email}</option>
                           ))}
                         </select>
                       </div>
 
                       <div className="mt-3 flex justify-between items-center">
                         <div className="text-xs text-gray-500">
-                          {delivery.driverId && delivery.vehicleId ? (
+                          {delivery.status === 'assigned' ? (
+                            <span className="flex items-center gap-1 text-blue-600">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                              </svg>
+                              Assigned to: {drivers.find(d => d.id == delivery.driverId)?.email}
+                            </span>
+                          ) : delivery.driverId && delivery.vehicleId ? (
                             <span className="flex items-center gap-1 text-green-600">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
@@ -626,7 +633,7 @@ export default function AdminDashboard() {
                               : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm hover:shadow-md'
                           }`}
                         >
-                          {delivery.driverId && delivery.vehicleId ? '🚀 Assign Now' : 'Select First'}
+                          {delivery.status === 'assigned' ? '✅ Assigned' : (assignSelections[delivery.id]?.driverId && assignSelections[delivery.id]?.vehicleId ? '🚀 Assign Now' : 'Select First')}
                         </button>
                       </div>
                     </div>
