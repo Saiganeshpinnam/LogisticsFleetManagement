@@ -26,10 +26,10 @@ exports.createDelivery = async (req, res) => {
       User.findByPk(customerId),
       Vehicle.findByPk(vehicleId),
     ]);
-    if (!driver || driver.role !== 'Driver') {
+    if (!driver || driver.role.toLowerCase() !== 'driver') {
       return res.status(400).json({ message: 'Driver not found' });
     }
-    if (!customer || customer.role !== 'Customer') {
+    if (!customer || customer.role.toLowerCase() !== 'customer') {
       return res.status(400).json({ message: 'Customer not found' });
     }
     if (!vehicle) {
@@ -108,32 +108,36 @@ exports.assignDelivery = async (req, res) => {
       return res.status(400).json({ message: 'Delivery is already assigned to a driver and vehicle' });
     }
 
+    // Parse IDs to integers
+    const driverIdInt = parseInt(driverId);
+    const vehicleIdInt = parseInt(vehicleId);
+
     // Check for scheduling conflicts for the driver
-    const conflict = await hasConflict({ driverId, vehicleId, scheduledStart: delivery.scheduledStart, scheduledEnd: delivery.scheduledEnd });
+    const conflict = await hasConflict({ driverId: driverIdInt, vehicleId: vehicleIdInt, scheduledStart: delivery.scheduledStart, scheduledEnd: delivery.scheduledEnd });
     if (conflict) {
       return res.status(400).json({ message: 'Scheduling conflict for driver or vehicle' });
     }
 
     // Validate FKs
     const lookups = [
-      User.findByPk(driverId),
-      Vehicle.findByPk(vehicleId),
-      customerId ? User.findByPk(customerId) : Promise.resolve(null)
+      User.findByPk(driverIdInt),
+      Vehicle.findByPk(vehicleIdInt),
+      customerId ? User.findByPk(parseInt(customerId)) : Promise.resolve(null)
     ];
     const [driver, vehicle, customer] = await Promise.all(lookups);
-    if (!driver || driver.role !== 'Driver') {
+    if (!driver || driver.role.toLowerCase() !== 'driver') {
       return res.status(400).json({ message: 'Driver not found' });
     }
     if (!vehicle) {
       return res.status(400).json({ message: 'Vehicle not found' });
     }
-    if (customerId && (!customer || customer.role !== 'Customer')) {
+    if (customerId && (!customer || customer.role.toLowerCase() !== 'customer')) {
       return res.status(400).json({ message: 'Customer not found' });
     }
 
-    delivery.driverId = driverId;
-    delivery.vehicleId = vehicleId;
-    delivery.status = 'pending'; // Set status to pending when delivery is assigned
+    delivery.driverId = driverIdInt;
+    delivery.vehicleId = vehicleIdInt;
+    delivery.status = 'assigned'; // Set status to assigned when delivery is assigned
     if (customerId) delivery.customerId = customerId;
     await delivery.save();
 
